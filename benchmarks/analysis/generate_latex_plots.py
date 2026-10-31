@@ -36,7 +36,7 @@ def generate_publication_assets(output_figures_dir: str, output_tables_dir: str)
     plt.tight_layout()
 
     fig1_path = os.path.join(output_figures_dir, "memory_comparison_plot.pdf")
-    plt.savefig(fig1_path, format="pdf")
+    plt.savefig(fig1_path, format="pdf", bbox_inches="tight")
     plt.close()
     print(f"[*] Generated: {fig1_path}")
 
@@ -63,7 +63,7 @@ def generate_publication_assets(output_figures_dir: str, output_tables_dir: str)
     plt.tight_layout()
 
     fig2_path = os.path.join(output_figures_dir, "latency_comparison_plot.pdf")
-    plt.savefig(fig2_path, format="pdf")
+    plt.savefig(fig2_path, format="pdf", bbox_inches="tight")
     plt.close()
     print(f"[*] Generated: {fig2_path}")
 
@@ -85,7 +85,7 @@ def generate_publication_assets(output_figures_dir: str, output_tables_dir: str)
 
     ax2 = ax1.twinx()
     color = '#d62728'
-    ax2.set_ylabel("Naive Agent Wire Tokens (Sample Dump)", color=color, fontsize=10, labelpad=8)
+    ax2.set_ylabel("Naive Agent Wire Tokens (Sample Dump)", color=color, fontsize=10, labelpad=14)
     l2 = ax2.plot(row_counts_millions, naive_prompt_tokens, color=color, marker='^', linestyle='--', linewidth=2.0, label='Naive Ingestion Tokens (O(N))')
     ax2.tick_params(axis='y', labelcolor=color)
 
@@ -97,7 +97,7 @@ def generate_publication_assets(output_figures_dir: str, output_tables_dir: str)
     fig.tight_layout()
 
     fig3_path = os.path.join(output_figures_dir, "token_invariance_plot.pdf")
-    plt.savefig(fig3_path, format="pdf")
+    plt.savefig(fig3_path, format="pdf", bbox_inches="tight")
     plt.close()
     print(f"[*] Generated: {fig3_path}")
 
@@ -111,6 +111,7 @@ def generate_publication_assets(output_figures_dir: str, output_tables_dir: str)
 \small
 \caption{Comprehensive Empirical Evaluation Across TPC-H Scaling Factors (SF-1 to SF-10).}
 \label{tab:performance_matrix}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}llrrrrr@{}}
 \toprule
 \textbf{Workload Scale} & \textbf{Evaluated System} & \textbf{Peak RSS (MB)} & \textbf{Latency (s)} & \textbf{Overhead vs Raw} & \textbf{Spill (MB)} & \textbf{Task Status} \\ \midrule
@@ -125,8 +126,9 @@ def generate_publication_assets(output_figures_dir: str, output_tables_dir: str)
 \textbf{SF-10} (10 GB) & Hexanna IIVX (Ours)       & \textbf{524.0}         & 32.10                & +2.30 s (+7.7\%)         & 840.6               & \textbf{Success (100\%)} \\
                         & Raw DuckDB (Zero-LLM)     & 452.0                  & 29.80                & Baseline (0.00 s)        & 840.6               & Success (100\%)      \\
                         & Polars Streaming          & 2420.0                 & 27.50                & -2.30 s (-7.7\%)         & 0.0                 & Success (100\%)      \\
-                        & Pandas-AI (In-Memory)     & 16384.0                & ---                  & ---                      & 0.0                 & \textbf{OOM KILLED}  \\ \bottomrule
-\end{tabular}
+                        & Pandas-AI (In-Memory)     & 16384.0                & N/A                  & N/A                      & 0.0                 & \textbf{OOM KILLED}  \\ \bottomrule
+\end{tabular}%
+}
 \end{table*}
 """)
     print(f"[*] Generated: {table1_path}")
@@ -138,22 +140,24 @@ def generate_publication_assets(output_figures_dir: str, output_tables_dir: str)
 \small
 \caption{Granular Evaluation Across Distinct Analytical TPC-H Query Profiles at SF-10 (10 GB).}
 \label{tab:query_profiles}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}llrrrr@{}}
 \toprule
 \textbf{Query Profile} & \textbf{System Under Test} & \textbf{Peak RSS (MB)} & \textbf{Wall Latency (s)} & \textbf{Disk Spill (MB)} & \textbf{Execution Result} \\ \midrule
 \textbf{Profile A: Scan/Agg}  & Hexanna IIVX (Ours) & 524.0  & 32.10 & 840.6  & Success (100\%) \\
 (TPC-H Q6, 60M rows)          & Raw DuckDB          & 452.0  & 29.80 & 840.6  & Success (100\%) \\
                               & Polars Streaming    & 2420.0 & 27.50 & 0.0    & Success (100\%) \\
-                              & Pandas (In-Memory)  & 16384.0& ---   & 0.0    & OOM Panic       \\ \midrule
+                              & Pandas (In-Memory)  & 16384.0& N/A   & 0.0    & OOM Panic       \\ \midrule
 \textbf{Profile B: Multi-Join}& Hexanna IIVX (Ours) & 568.5  & 41.50 & 1420.8 & Success (100\%) \\
 (TPC-H Q5, 5-table merge)     & Raw DuckDB          & 498.4  & 38.90 & 1420.8 & Success (100\%) \\
                               & Polars Streaming    & 2980.0 & 35.10 & 0.0    & Success (100\%) \\
-                              & Pandas (In-Memory)  & 16384.0& ---   & 0.0    & OOM Panic       \\ \midrule
+                              & Pandas (In-Memory)  & 16384.0& N/A   & 0.0    & OOM Panic       \\ \midrule
 \textbf{Profile C: Subquery}  & Hexanna IIVX (Ours) & 542.1  & 36.80 & 1150.2 & Success (100\%) \\
 (TPC-H Q17, Correlated subq)  & Raw DuckDB          & 476.0  & 34.20 & 1150.2 & Success (100\%) \\
                               & Polars Streaming    & 2710.0 & 31.40 & 0.0    & Success (100\%) \\
-                              & Pandas (In-Memory)  & 16384.0& ---   & 0.0    & OOM Panic       \\ \bottomrule
-\end{tabular}
+                              & Pandas (In-Memory)  & 16384.0& N/A   & 0.0    & OOM Panic       \\ \bottomrule
+\end{tabular}%
+}
 \end{table*}
 """)
     print(f"[*] Generated: {table2_path}")
