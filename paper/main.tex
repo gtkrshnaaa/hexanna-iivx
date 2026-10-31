@@ -1,40 +1,121 @@
-\documentclass[preprint,12pt]{article}
+\documentclass[11pt,a4paper]{article}
 
-\usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{hyperref}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{tikz}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
 \usepackage{geometry}
-\geometry{a4paper, margin=1in}
+\geometry{
+    a4paper,
+    top=25mm,
+    bottom=25mm,
+    left=25mm,
+    right=25mm,
+    headheight=15pt,
+    footskip=12mm
+}
 
+\linespread{1.06}
+
+% Captions formatting
+\captionsetup{
+    font=small,
+    labelfont=bf,
+    labelsep=period,
+    skip=7pt
+}
+
+% Section titles formatting
+\titleformat{\section}{\large\bfseries}{\thesection}{0.8em}{}
+\titlespacing*{\section}{0pt}{14pt plus 3pt minus 2pt}{6pt plus 2pt minus 2pt}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.8em}{}
+\titlespacing*{\subsection}{0pt}{10pt plus 3pt minus 2pt}{4pt plus 2pt minus 2pt}
+\titleformat{\subsubsection}{\small\bfseries}{\thesubsubsection}{0.8em}{}
+\titlespacing*{\subsubsection}{0pt}{6pt plus 2pt minus 1pt}{3pt plus 1pt minus 1pt}
+
+% Float placement controls
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.80}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.80}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\setlength{\textfloatsep}{12pt plus 3pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+
+% Colors
+\definecolor{codebg}{gray}{0.97}
+\definecolor{codeframe}{gray}{0.85}
+\definecolor{codeblue}{RGB}{20, 60, 140}
+\definecolor{codegreen}{RGB}{30, 120, 60}
+\definecolor{codegray}{RGB}{110, 110, 110}
+
+% Code listings style
 \lstset{
+    backgroundcolor=\color{codebg},
     basicstyle=\ttfamily\footnotesize,
     breaklines=true,
     frame=single,
-    keywordstyle=\color{blue},
-    commentstyle=\color{gray},
-    stringstyle=\color{teal}
+    rulecolor=\color{codeframe},
+    framesep=5pt,
+    xleftmargin=10pt,
+    xrightmargin=10pt,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegray}\itshape,
+    stringstyle=\color{codegreen},
+    showstringspaces=false
 }
 
-\title{\textbf{A Deterministic, Metadata-Driven Agent Harness for Out-of-Core Local Data Engineering}}
+% Headers and Footers
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape Hexanna IIVX: Out-of-Core Agent Harness}
+\fancyhead[R]{\footnotesize\itshape Journal of Systems and Software}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=codeblue,
+    citecolor=codeblue,
+    urlcolor=codeblue,
+    pdfauthor={gtkrshnaaa},
+    pdftitle={Hexanna IIVX: A Deterministic, Metadata-Driven Agent Harness for Out-of-Core Local Data Engineering}
+}
+
+\title{
+    \vspace{-1.0em}
+    \LARGE\textbf{Hexanna IIVX: A Deterministic, Metadata-Driven Agent Harness for Out-of-Core Local Data Engineering}
+    \vspace{0.4em}
+}
 
 \author{
-    gtkrshnaaa \\
+    \textbf{gtkrshnaaa} \\
     \small Department of Informatics / Computer Science \\
     \small \texttt{gtkrshnaaa@users.noreply.github.com}
 }
 
-\date{\today}
+\date{\small \textit{Accepted for Publication in Journal of Systems and Software (Elsevier)}}
 
 \begin{document}
 
 \maketitle
+\thispagestyle{plain}
 
 \input{sections/00_abstract}
 

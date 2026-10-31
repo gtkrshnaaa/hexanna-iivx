@@ -11,7 +11,7 @@ Recent advancements in Large Language Models (LLMs) and autonomous agent framewo
     \item \textbf{Lack of Out-of-Core Agent Orchestration:} While state-of-the-art columnar engines such as DuckDB \cite{raasveldt2019duckdb} and Polars \cite{polars2024} provide vectorized streaming capabilities, existing agent harnesses lack deterministic abstractions to orchestrate these engines under strict memory clamps and structured self-healing feedback loops.
 \end{enumerate}
 
-\begin{table*}[t]
+\begin{table}[htbp]
 \centering
 \small
 \caption{Architectural comparison of local data engineering paradigms.}
@@ -28,7 +28,7 @@ Disk Spilling Buffer & Automatic NVMe Spilling & Automatic NVMe Spilling & Limit
 Self-Healing Recovery & Automated 3-Stage Dispatch & None & None & Naive Text Reprompt \\ \bottomrule
 \end{tabular}%
 }
-\end{table*}
+\end{table}
 
 To resolve these challenges, we introduce \textbf{Hexanna IIVX}, a lightweight, deterministic agent harness designed specifically for out-of-core local data engineering. Hexanna IIVX decouples high-level cognitive reasoning from local hardware execution using a hexagonal architecture (ports and adapters). The agent interacts with underlying datasets exclusively through a metadata-first protocol: raw records are stripped locally, and only relational schemas and compact statistical profile sketches (cardinalities, quantiles, null proportions) are transmitted to remote OpenAI-compatible inference APIs. Execution is confined to a strictly-typed tool harness orchestrated over an embedded vectorized query engine (DuckDB) enforcing static memory limits and automatic NVMe disk spilling.
 

@@ -3,8 +3,9 @@
 
 Hexanna IIVX is designed around the principles of Hexagonal Architecture (Ports and Adapters), establishing strict isolation between high-level cognitive planning and physical hardware execution. Figure~\ref{fig:architecture_diagram} illustrates the core components and execution lifecycle.
 
-\begin{figure*}[t]
+\begin{figure}[htbp]
 \centering
+\resizebox{0.92\linewidth}{!}{%
 \begin{tikzpicture}[node distance=1.8cm, auto, >=stealth, thick]
     \tikzstyle{block} = [rectangle, draw, fill=blue!5, text width=2.8cm, text centered, rounded corners, minimum height=1.3cm, font=\small]
     \tikzstyle{port} = [rectangle, draw, fill=green!5, text width=2.6cm, text centered, dashed, minimum height=1.1cm, font=\small]
@@ -28,15 +29,16 @@ Hexanna IIVX is designed around the principles of Hexagonal Architecture (Ports 
     \path [line] (core) -- (engineport);
     \path [line] (engineport) -- (duckdb);
     \path [line] (duckdb) -- (storage);
-\end{tikzpicture}
+\end{tikzpicture}%
+}
 \caption{Hexanna IIVX architectural blueprint showing strict decoupling between remote cognitive planning and local out-of-core execution.}
 \label{fig:architecture_diagram}
-\end{figure*}
+\end{figure}
 
 \subsection{Metadata Extraction and Context Formulation}
 In standard agent architectures, raw data records or ad-hoc table samples are directly embedded into model prompts, causing prompt token sizes to scale with data volume. Hexanna IIVX eliminates raw row transmission through a metadata-first schema protocol.
 
-Let a dataset $\mathcal{D}$ stored at local path $\mathcal{U}$ consist of $N$ records across schema $\mathcal{S} = \{(c_1, \tau_1), (c_2, \tau_2), \dots, (c_m, \tau_m)\}$, where $c_j$ denotes the column identifier and $\tau_j$ denotes the relational data type. Prior to dispatching requests to the remote reasoning gateway, the local \texttt{ProfileSketcher} module inspects $\mathcal{D}$ locally and constructs a compact statistical summary tuple $\mathcal{M}(\mathcal{D})$:
+Let a dataset $\mathcal{D}$ stored at local path $\mathcal{U}$ consist of $N$ records across relational schema $\mathcal{S} = \{(c_j, \tau_j)\}_{j=1}^m$, where $c_j$ denotes the column identifier and $\tau_j$ denotes the relational data type. Prior to dispatching requests to the remote reasoning gateway, the local \texttt{ProfileSketcher} module inspects $\mathcal{D}$ locally and constructs a compact statistical summary tuple $\mathcal{M}(\mathcal{D})$:
 \begin{equation}
     \mathcal{M}(\mathcal{D}) = \langle \mathcal{S}, N, \sigma(\mathcal{D}), \phi(\mathcal{D}), \kappa(\mathcal{D}) \rangle
 \end{equation}

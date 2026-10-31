@@ -8,9 +8,9 @@ Table~\ref{tab:performance_matrix} and Figure~\ref{fig:memory_chart} summarize p
 
 \input{tables/table1_performance_matrix}
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{figures/memory_comparison_plot.pdf}
+\includegraphics[width=0.78\linewidth]{figures/memory_comparison_plot.pdf}
 \caption{Peak physical memory consumption (MB RSS) across TPC-H scaling factors. Hexanna IIVX maintains an invariant ceiling ($<550$~MB), whereas Pandas-AI triggers an operating system kernel OOM termination at SF-10.}
 \label{fig:memory_chart}
 \end{figure}
@@ -24,9 +24,9 @@ Comparing Hexanna IIVX with Polars Streaming reveals critical architectural diff
 \subsection{Wall-Clock Latency and Orchestration Overhead (RQ2)}
 Figure~\ref{fig:latency_chart} illustrates end-to-end wall-clock latency curves across evaluated scales.
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{figures/latency_comparison_plot.pdf}
+\includegraphics[width=0.78\linewidth]{figures/latency_comparison_plot.pdf}
 \caption{Wall-clock execution latency across dataset scales. As dataset scale increases, agentic cognitive planning overhead amortizes from 59.0\% at SF-1 to 7.7\% at SF-10.}
 \label{fig:latency_chart}
 \end{figure}
@@ -53,9 +53,9 @@ Across all three query profiles, Pandas-AI consistently crashes with kernel OOM 
 \subsection{Token Wire Efficiency and Cardinality Invariance (RQ3)}
 Figure~\ref{fig:token_chart} plots remote wire token consumption against the number of raw records processed.
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{figures/token_invariance_plot.pdf}
+\includegraphics[width=0.78\linewidth]{figures/token_invariance_plot.pdf}
 \caption{Empirical verification of prompt wire token invariance ($\mathcal{O}(1)$) across raw record cardinality scaling from 6 million to 60 million rows.}
 \label{fig:token_chart}
 \end{figure}
