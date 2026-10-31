@@ -5,7 +5,7 @@ In this paper, we introduced \textbf{Hexanna IIVX}, a deterministic, metadata-dr
 
 Through formal mathematical proof and rigorous empirical benchmarking across the standardized TPC-H decision support suite, we demonstrated that:
 \begin{enumerate}
-    \item Hexanna IIVX maintains an invariant memory footprint ($<550$~MB RSS) when scaling from 1~GB to 10~GB datasets (60 million records), while in-memory DataFrame frameworks crash catastrophically due to RAM exhaustion.
+    \item Hexanna IIVX sustains a flat memory ceiling ($<550$~MB RSS) from 1~GB to 10~GB datasets (60 million rows), while in-memory DataFrame agents crash due to RAM exhaustion.
     \item The computational overhead of autonomous agent reasoning rapidly amortizes as dataset volume grows, decreasing from 59.0\% at SF-1 to just 7.7\% at SF-10 compared to direct hand-crafted SQL execution.
     \item The metadata-first protocol achieves strict $\mathcal{O}(1)$ prompt token wire invariance ($\approx 840$ tokens), guaranteeing constant API communication costs and absolute data sovereignty for raw enterprise records.
     \item The integration of the ProfileSketcher module and a three-stage self-healing dispatch loop elevates first-shot accuracy from 52.1\% to 88.4\%, achieving a 100\% overall task validity rate across scan, multi-way join, and subquery workloads.
@@ -19,4 +19,4 @@ While Hexanna IIVX demonstrates robust performance for structured analytical pip
     \item \textbf{Multi-Agent Collaborative Profiling:} Decomposing data engineering objectives across specialized subagents (e.g., schema auditor, query planner, and validation verifier) may further enhance optimization for highly complex analytical workflows.
 \end{itemize}
 
-Hexanna IIVX is fully open-sourced under an permissive academic license, providing complete codebases, benchmark harnesses, and dataset synthesis scripts to support transparent reproducibility in autonomous data engineering systems.
+Hexanna IIVX is fully open-sourced under a permissive academic license, providing complete codebases, benchmark harnesses, and dataset synthesis scripts to support transparent reproducibility in autonomous data engineering systems.

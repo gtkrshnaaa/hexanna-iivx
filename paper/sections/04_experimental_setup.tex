@@ -14,7 +14,7 @@ All benchmarks are conducted on a commodity developer laptop representative of s
 To ensure strict reproducibility and isolate external host processes, all experimental runs are executed inside unprivileged Docker containers (Python 3.11-slim) with CPU and memory limits enforcing a 50\% host resource cap.
 
 \subsection{Benchmark Workloads and Scale Factors}
-Workloads are derived from the industry-standard Transaction Processing Performance Council Ad-hoc Decision Support benchmark (TPC-H) \cite{tpch2021}. The benchmark database consists of eight relational tables (\texttt{lineitem}, \texttt{orders}, \texttt{customer}, \texttt{part}, \texttt{partsupp}, \texttt{supplier}, \texttt{nation}, \texttt{region}). We generate datasets across three distinct Scale Factors:
+Workloads are derived from the industry-standard Transaction Processing Performance Council Ad-hoc Decision Support benchmark (TPC-H) \cite{tpch2021}. The benchmark database consists of eight relational tables (\texttt{lineitem}, \texttt{orders}, \texttt{customer}, \texttt{part}, \texttt{partsupp}, \texttt{supplier}, \texttt{nation}, and \texttt{region}). We generate datasets across three distinct Scale Factors:
 \begin{itemize}
     \item \textbf{SF-1:} 1~GB raw relational data ($\approx 6.0 \times 10^6$ \texttt{lineitem} records).
     \item \textbf{SF-5:} 5~GB raw relational data ($\approx 3.0 \times 10^7$ \texttt{lineitem} records).

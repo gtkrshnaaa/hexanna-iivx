@@ -9,7 +9,7 @@ Hexanna IIVX is designed around the principles of Hexagonal Architecture (Ports 
     \tikzstyle{block} = [rectangle, draw, fill=blue!5, text width=2.8cm, text centered, rounded corners, minimum height=1.3cm, font=\small]
     \tikzstyle{port} = [rectangle, draw, fill=green!5, text width=2.6cm, text centered, dashed, minimum height=1.1cm, font=\small]
     \tikzstyle{external} = [rectangle, draw, fill=orange!5, text width=2.8cm, text centered, minimum height=1.3cm, font=\small]
-    \tikzstyle{line} = [draw, -latex']
+    \tikzstyle{line} = [draw, ->]
 
     \node [external] (llm) {Remote LLM Gateway (OpenAI-compatible)};
     \node [port, right of=llm, node distance=4.0cm] (llmport) {LLM Client Port (Zero Raw Rows)};
@@ -46,7 +46,7 @@ where:
     \item $N$ is the total row cardinality,
     \item $\sigma(\mathcal{D}) = \{ (c_j, \text{null\_ratio}_j) \}_{j=1}^m$ records attribute nullness proportions,
     \item $\phi(\mathcal{D}) = \{ (c_j, \hat{u}_j) \}_{j=1}^m$ provides distinct cardinality estimates derived via HyperLogLog sketch algorithms,
-    \item $\kappa(\mathcal{D}) = \{ (c_j, \min_j, q_{25, j}, q_{50, j}, q_{75, j}, \max_j) \}_{j=1}^m$ provides distribution boundary sketches for numeric and temporal attributes.
+    \item $\kappa(\mathcal{D}) = \{ (c_j, \min_j, q_{25, j}, \dots, \max_j) \}_{j=1}^m$ provides quartile boundary sketches for numeric attributes.
 \end{itemize}
 
 \noindent\textbf{Theorem 1 (Token Wire Invariance).} \textit{Let dataset $\mathcal{D}$ contain $N$ records and $m$ columns. Under the metadata-first protocol, the remote prompt wire size $\|\mathcal{M}(\mathcal{D})\|$ in tokens is bounded by $\mathcal{O}(m)$ and is strictly invariant with respect to row cardinality $N$:}

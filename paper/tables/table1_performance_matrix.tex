@@ -3,6 +3,7 @@
 \small
 \caption{Comprehensive Empirical Evaluation Across TPC-H Scaling Factors (SF-1 to SF-10).}
 \label{tab:performance_matrix}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}llrrrrr@{}}
 \toprule
 \textbf{Workload Scale} & \textbf{Evaluated System} & \textbf{Peak RSS (MB)} & \textbf{Latency (s)} & \textbf{Overhead vs Raw} & \textbf{Spill (MB)} & \textbf{Task Status} \\ \midrule
@@ -18,5 +19,6 @@
                         & Raw DuckDB (Zero-LLM)     & 452.0                  & 29.80                & Baseline (0.00 s)        & 840.6               & Success (100\%)      \\
                         & Polars Streaming          & 2420.0                 & 27.50                & -2.30 s (-7.7\%)         & 0.0                 & Success (100\%)      \\
                         & Pandas-AI (In-Memory)     & 16384.0                & N/A                  & N/A                      & 0.0                 & \textbf{OOM KILLED}  \\ \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table*}

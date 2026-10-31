@@ -3,6 +3,7 @@
 \small
 \caption{Granular Evaluation Across Distinct Analytical TPC-H Query Profiles at SF-10 (10 GB).}
 \label{tab:query_profiles}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}llrrrr@{}}
 \toprule
 \textbf{Query Profile} & \textbf{System Under Test} & \textbf{Peak RSS (MB)} & \textbf{Wall Latency (s)} & \textbf{Disk Spill (MB)} & \textbf{Execution Result} \\ \midrule
@@ -18,5 +19,6 @@
 (TPC-H Q17, Correlated subq)  & Raw DuckDB          & 476.0  & 34.20 & 1150.2 & Success (100\%) \\
                               & Polars Streaming    & 2710.0 & 31.40 & 0.0    & Success (100\%) \\
                               & Pandas (In-Memory)  & 16384.0& N/A   & 0.0    & OOM Panic       \\ \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table*}

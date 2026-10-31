@@ -7,8 +7,8 @@ Recent advancements in Large Language Models (LLMs) and autonomous agent framewo
 \begin{enumerate}
     \item \textbf{Context Window Saturation and Data Confidentiality Violations:} Naive agents ingest sample rows of raw tabular data directly into LLM prompts. On multi-gigabyte datasets, this approach rapidly exhausts finite context windows, inflates API token costs, and violates data governance mandates by transmitting raw proprietary records to third-party model inference endpoints.
     \item \textbf{Unbounded In-Memory Allocation and OOM Panics:} Systems delegating operations to in-memory DataFrame libraries (e.g., Pandas) require allocating contiguous matrices in RAM, scaling linearly with dataset cardinality $\mathcal{O}(N)$. On commodity workstations with 16~GB RAM, processing 10~GB datasets induces catastrophic memory spikes, triggering operating system kernel Out-of-Memory (OOM) killer terminations.
-    \item \textbf{Unrestricted Shell Execution and Security Vulnerabilities:} General-purpose agents executing arbitrary Bash commands present critical security vulnerabilities, including destructive filesystem modifications, path traversals, and non-deterministic side effects \cite{greshake2023not,liu2023jailbreaking,li2024evaluating}.
-    \item \textbf{Absence of Out-of-Core Agent Orchestration:} While state-of-the-art columnar engines such as DuckDB \cite{raasveldt2019duckdb} and Polars \cite{polars2024} provide vectorized streaming capabilities, existing agent harnesses lack deterministic abstractions to orchestrate these engines under strict memory clamps and structured self-healing feedback loops.
+    \item \textbf{Arbitrary Shell Execution Vulnerabilities:} General-purpose agents executing arbitrary Bash commands present critical security vulnerabilities, including destructive filesystem modifications, path traversals, and non-deterministic side effects \cite{greshake2023not,liu2023jailbreaking,li2024evaluating}.
+    \item \textbf{Lack of Out-of-Core Agent Orchestration:} While state-of-the-art columnar engines such as DuckDB \cite{raasveldt2019duckdb} and Polars \cite{polars2024} provide vectorized streaming capabilities, existing agent harnesses lack deterministic abstractions to orchestrate these engines under strict memory clamps and structured self-healing feedback loops.
 \end{enumerate}
 
 \begin{table*}[t]
@@ -16,6 +16,7 @@ Recent advancements in Large Language Models (LLMs) and autonomous agent framewo
 \small
 \caption{Architectural comparison of local data engineering paradigms.}
 \label{tab:agent_comparison}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lllll@{}}
 \toprule
 \textbf{Architectural Dimension} & \textbf{Hexanna IIVX (Ours)} & \textbf{Raw DuckDB} & \textbf{Polars Streaming} & \textbf{In-Memory Agents} \\ \midrule
@@ -25,7 +26,8 @@ Wire Data Exposure & Metadata Only ($\mathcal{O}(1)$) & Local Zero-Egress & Loca
 Memory Model & Bounded Out-of-Core ($<550$ MB) & Bounded Out-of-Core & Streaming Heap Buffer & Contiguous RAM ($\mathcal{O}(N)$) \\
 Disk Spilling Buffer & Automatic NVMe Spilling & Automatic NVMe Spilling & Limited Spill Support & None (OOM Crash) \\
 Self-Healing Recovery & Automated 3-Stage Dispatch & None & None & Naive Text Reprompt \\ \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table*}
 
 To resolve these challenges, we introduce \textbf{Hexanna IIVX}, a lightweight, deterministic agent harness designed specifically for out-of-core local data engineering. Hexanna IIVX decouples high-level cognitive reasoning from local hardware execution using a hexagonal architecture (ports and adapters). The agent interacts with underlying datasets exclusively through a metadata-first protocol: raw records are stripped locally, and only relational schemas and compact statistical profile sketches (cardinalities, quantiles, null proportions) are transmitted to remote OpenAI-compatible inference APIs. Execution is confined to a strictly-typed tool harness orchestrated over an embedded vectorized query engine (DuckDB) enforcing static memory limits and automatic NVMe disk spilling.
