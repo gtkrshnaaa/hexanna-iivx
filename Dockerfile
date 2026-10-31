@@ -9,12 +9,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies
-COPY pyproject.toml .
+# Install python dependencies and package
+COPY pyproject.toml README.md ./
+COPY src ./src
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .[all]
 
-# Copy application source
+# Copy remaining application files
 COPY . .
 
 # Default non-root user

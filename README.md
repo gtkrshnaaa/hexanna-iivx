@@ -40,6 +40,20 @@ hexanna-iivx/
 
 ### Installation
 
+Run the universal installer to build and register the `hexanna` command in your OS PATH, enabling execution from any directory:
+
+```bash
+./install.sh
+```
+
+Installer options:
+- `./install.sh`: Automatically detects privileges and installs to `~/.local/bin/hexanna` (or `/usr/local/bin/hexanna` if root).
+- `./install.sh --user`: Force install to user directory (`~/.local/bin/hexanna`).
+- `sudo ./install.sh --system`: Force install to system binary directory (`/usr/local/bin/hexanna`).
+- `./install.sh --uninstall`: Remove the installed launcher.
+
+For local Python virtual environment development:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,12 +62,12 @@ pip install -e ".[all]"
 
 ### Interactive TUI REPL
 
-Launch the interactive REPL with real-time memory metrics, tab auto-completion, and out-of-core streaming:
+Launch the interactive REPL from any directory in your terminal:
 
 ```bash
-python3 -m hexanna
+hexanna
 # or explicitly:
-python3 -m hexanna repl
+hexanna repl
 ```
 
 Available REPL commands:
@@ -65,8 +79,9 @@ Available REPL commands:
 - `/history [limit]`: Display recent interactive command history from SQLite.
 - `/history-chat [session_id]`: Display message turns for a chat session from SQLite.
 - `/clear-history`: Purge all historical chat sessions and commands in SQLite.
+- `/artifacts [limit]`: List generated out-of-core dataset artifacts in SQLite.
 - `/memory`: Inspect process RSS, VMS, CPU, and DuckDB disk spill metrics.
-- `/config`: Inspect or update model, base URL, and memory ceilings.
+- `/config`: Inspect or update model, base URL, and memory ceilings stored in SQLite.
 - `/help`: Display the commands reference table.
 
 ### CLI Commands
@@ -74,31 +89,37 @@ Available REPL commands:
 Inspect recent interactive command history from SQLite:
 
 ```bash
-python3 -m hexanna history --limit 20
+hexanna history --limit 20
 ```
 
 List historical sessions from SQLite:
 
 ```bash
-python3 -m hexanna sessions --limit 20
+hexanna sessions --limit 20
+```
+
+List persisted artifacts from SQLite:
+
+```bash
+hexanna artifacts --limit 20
 ```
 
 Inspect a dataset schema without loading records into memory:
 
 ```bash
-python3 -m hexanna inspect "data/sample.parquet"
+hexanna inspect "data/sample.parquet"
 ```
 
 Calculate statistical sketches for a column:
 
 ```bash
-python3 -m hexanna profile "data/sample.parquet" "column_name"
+hexanna profile "data/sample.parquet" "column_name"
 ```
 
 Execute an out-of-core analytical transformation directly to disk:
 
 ```bash
-python3 -m hexanna query "SELECT category, SUM(price) FROM 'data/sales.parquet' GROUP BY category" "output/summary.parquet"
+hexanna query "SELECT category, SUM(price) FROM 'data/sales.parquet' GROUP BY category" "output/summary.parquet"
 ```
 
 Run an autonomous goal:
@@ -106,7 +127,7 @@ Run an autonomous goal:
 ```bash
 export LLM_API_KEY="your-api-key"
 export LLM_BASE_URL="https://api.groq.com/openai/v1"
-python3 -m hexanna run "Aggregate all lineitems grouped by return flag and save to output/flag_summary.parquet"
+hexanna run "Aggregate all lineitems grouped by return flag and save to output/flag_summary.parquet"
 ```
 
 ## Running Benchmarks

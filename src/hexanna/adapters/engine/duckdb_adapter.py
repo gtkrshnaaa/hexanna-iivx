@@ -1,15 +1,24 @@
 import os
 import duckdb
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from hexanna.ports.data_engine import IDataEngine
 from hexanna.domain.models import DatasetMetadata, ColumnSchema
 from hexanna.domain.exceptions import HexannaDomainException
 
 class DuckDBAdapter(IDataEngine):
-    def __init__(self, memory_limit: str = "2GB", temp_directory: str = ".hexanna_tmp"):
+    def __init__(self, memory_limit: str = "2GB", temp_directory: Optional[str] = None):
         self.memory_limit = memory_limit
-        self.temp_directory = temp_directory
-        os.makedirs(self.temp_directory, exist_ok=True)
+        if temp_directory:
+            self.temp_directory = temp_directory
+        else:
+            self.temp_directory = os.getenv("HEXANNA_TEMP_DIR", os.path.expanduser("~/.hexanna_tmp"))
+
+        try:
+            os.makedirs(self.temp_directory, exist_ok=True)
+        except OSError:
+            import tempfile
+            self.temp_directory = os.path.join(tempfile.gettempdir(), f"hexanna_tmp_{os.getuid()}")
+            os.makedirs(self.temp_directory, exist_ok=True)
 
         self._conn = duckdb.connect(database=":memory:")
         self._conn.execute(f"SET max_memory = '{self.memory_limit}';")
