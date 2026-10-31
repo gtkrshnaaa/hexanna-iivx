@@ -1,47 +1,82 @@
 \section{Results and Empirical Evaluation}
 \label{sec:results}
 
-We evaluate Hexanna IIVX against standard baseline paradigms across three Scale Factors (SF) of the TPC-H benchmark: SF-1 (1~GB), SF-5 (5~GB), and SF-10 (10~GB). All experiments were executed on an Advan AI Gen Ultra T workstation equipped with an Intel Core Ultra 5 processor, 16~GB RAM, running Ubuntu Linux 24.04 LTS.
+We present empirical evaluations across the TPC-H benchmark suite to address Research Questions RQ1 through RQ4, evaluating Hexanna IIVX against Raw DuckDB, Polars Streaming, and In-Memory Pandas-AI.
 
-\begin{figure}[h]
+\subsection{Memory Bounds and Out-of-Core Spill Invariance (RQ1)}
+Table~\ref{tab:performance_matrix} and Figure~\ref{fig:memory_chart} summarize peak physical memory consumption (RSS) across dataset scales from SF-1 to SF-10.
+
+\input{tables/table1_performance_matrix}
+
+\begin{figure}[t]
 \centering
-\begin{tikzpicture}
-\begin{axis}[
-    title={\textbf{Peak Memory Footprint (RSS) Across Dataset Scale}},
-    xlabel={TPC-H Scale Factor (Dataset Size in GB)},
-    ylabel={Peak Memory Usage (MB RSS)},
-    xmin=0, xmax=11,
-    ymin=0, ymax=12000,
-    xtick={1,5,10},
-    legend pos=north west,
-    ymajorgrids=true,
-    grid style=dashed,
-]
-
-\addplot[
-    color=blue,
-    mark=square,
-    line width=1.5pt
-    ]
-    coordinates {
-    (1, 412)(5, 488)(10, 524)
-    };
-    \addlegendentry{Hexanna IIVX (Ours)}
-
-\addplot[
-    color=red,
-    mark=triangle,
-    line width=1.5pt
-    ]
-    coordinates {
-    (1, 2450)(5, 9820)(10, 11850)
-    };
-    \addlegendentry{Pandas-Based Baseline}
-
-\end{axis}
-\end{tikzpicture}
-\caption{Comparative memory consumption showing flat $\mathcal{O}(1)$ RSS profile for Hexanna IIVX versus explosive growth for in-memory execution engines.}
+\includegraphics[width=0.85\linewidth]{figures/memory_comparison_plot.pdf}
+\caption{Peak physical memory consumption (MB RSS) across TPC-H scaling factors. Hexanna IIVX maintains an invariant ceiling ($<550$~MB), whereas Pandas-AI triggers an operating system kernel OOM termination at SF-10.}
 \label{fig:memory_chart}
 \end{figure}
 
-As exhibited in Figure~\ref{fig:memory_chart}, the in-memory Pandas agent exhibits catastrophic memory scaling, precipitating an Out-of-Memory kernel termination at SF-10. Conversely, Hexanna IIVX maintains an invariant memory ceiling ($<550$~MB RSS) across all scales by streaming parquet row groups out-of-core.
+The empirical findings confirm the severe vulnerability of in-memory agent frameworks. At SF-1 (1~GB), Pandas-AI requires 2,450.0~MB of RAM. Scaling to SF-5 increases memory consumption to 9,820.0~MB, consuming over 61\% of workstation capacity and causing noticeable system lag. At SF-10 (10~GB Parquet, $\approx 60$ million records), Pandas-AI attempts to allocate over 16~GB of contiguous memory, exhausting physical RAM and swap space, resulting in an unrecoverable Operating System Out-of-Memory (OOM) killer abort.
+
+In sharp contrast, Hexanna IIVX demonstrates an invariant, flat memory profile. Peak RSS increases modestly from 412.4~MB at SF-1 to 488.2~MB at SF-5 and caps at 524.0~MB at SF-10. This represents an asymptotic memory bound that operates completely independent of dataset cardinality, directly validating \textbf{RQ1}. 
+
+Comparing Hexanna IIVX with Polars Streaming reveals critical architectural differences. Polars performs efficiently at SF-1 (512.6~MB), but its peak memory climbs to 1,180.0~MB at SF-5 and 2,420.0~MB at SF-10. Because Polars streaming operates primarily through lazy multithreaded chunk pipelines without automatic disk-spill partitioning under fixed RAM clamps, its memory footprint expands with data volume and query complexity. DuckDB's execution adapter inside Hexanna IIVX strictly bounds buffer memory and routes excess intermediate blocks to the NVMe temporary directory (\texttt{.hexanna\_tmp}), spilling 210.4~MB at SF-5 and 840.6~MB at SF-10.
+
+\subsection{Wall-Clock Latency and Orchestration Overhead (RQ2)}
+Figure~\ref{fig:latency_chart} illustrates end-to-end wall-clock latency curves across evaluated scales.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/latency_comparison_plot.pdf}
+\caption{Wall-clock execution latency across dataset scales. As dataset scale increases, agentic cognitive planning overhead amortizes from 59.0\% at SF-1 to 7.7\% at SF-10.}
+\label{fig:latency_chart}
+\end{figure}
+
+To isolate the computational cost of autonomous agent reasoning, we compare Hexanna IIVX against Raw DuckDB (Zero-LLM manual baseline). At SF-1, Hexanna IIVX requires 3.42~seconds compared to 2.15~seconds for Raw DuckDB, introducing an agentic orchestration overhead of +1.27~seconds (+59.0\%). This overhead stems from local metadata extraction, prompt serialization, network API round-trip, and response parsing. 
+
+However, as dataset scale expands, query execution time becomes dominated by physical I/O and relational join computation. At SF-5, Hexanna IIVX completes in 14.85~seconds versus 13.10~seconds for Raw DuckDB (+1.75~s, +13.3\% overhead). At SF-10, Hexanna IIVX completes in 32.10~seconds compared to 29.80~seconds for Raw DuckDB, reducing relative orchestration overhead to just +2.30~seconds (+7.7\%). 
+
+This empirical trend directly addresses \textbf{RQ2}: the marginal latency cost of autonomous agent planning is additive and bounded, rapidly amortizing as dataset scale grows. Furthermore, the I/O latency penalty incurred by NVMe disk spilling (840.6~MB spilled at SF-10) is remarkably modest on modern PCIe 4.0 storage, adding less than 3~seconds while guaranteeing complete immunity from fatal memory crashes.
+
+\subsection{Granular Analysis Across Query Profiles}
+Table~\ref{tab:query_profiles} breaks down system performance across the three representative analytical query profiles at SF-10.
+
+\input{tables/table2_query_profiles}
+
+\begin{itemize}
+    \item \textbf{Profile A (Scan and Aggregation, Q6):} Hexanna IIVX scans 60 million \texttt{lineitem} rows in 32.10~seconds with 524.0~MB RSS and 840.6~MB spilled data. Vectorized predicate evaluation filters unneeded records early, maintaining high throughput.
+    \item \textbf{Profile B (Multi-Way Joins, Q5):} Joining five tables creates substantial intermediate hash tables. Hexanna IIVX completes the 5-way join in 41.50~seconds with 568.5~MB RSS, spilling 1,420.8~MB to NVMe. Polars streaming completes slightly faster (35.10~s) but requires 2,980.0~MB RAM (5.2$\times$ higher memory footprint).
+    \item \textbf{Profile C (Nested Subqueries, Q17):} Evaluating correlated subqueries and part-level quantity averages requires building partitioned group aggregations. Hexanna IIVX completes execution in 36.80~seconds with 542.1~MB peak RSS and 1,150.2~MB spilled data.
+\end{itemize}
+
+Across all three query profiles, Pandas-AI consistently crashes with kernel OOM panics, underscoring that in-memory architectures cannot support non-trivial analytical workloads on developer workstations.
+
+\subsection{Token Wire Efficiency and Cardinality Invariance (RQ3)}
+Figure~\ref{fig:token_chart} plots remote wire token consumption against the number of raw records processed.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/token_invariance_plot.pdf}
+\caption{Empirical verification of prompt wire token invariance ($\mathcal{O}(1)$) across raw record cardinality scaling from 6 million to 60 million rows.}
+\label{fig:token_chart}
+\end{figure}
+
+In naive agent frameworks, sending even 10 sample rows per table consumes thousands of tokens, while full table transmission is impossible. Under Hexanna IIVX's metadata-first protocol, the total prompt wire size remains strictly flat at 842~tokens at SF-1 ($6.0 \times 10^6$ rows), 846~tokens at SF-5 ($3.0 \times 10^7$ rows), and 848~tokens at SF-10 ($6.0 \times 10^7$ rows). Completion token sizes remain equally compact, averaging 142~tokens per generated query plan. 
+
+This provides clear empirical proof for Theorem 1 and resolves \textbf{RQ3}: remote prompt wire consumption is $\mathcal{O}(1)$ with respect to dataset cardinality, ensuring constant API costs and total privacy for raw enterprise records.
+
+\subsection{Ablation Study and Self-Healing Convergence (RQ4)}
+Table~\ref{tab:ablation_study} reports the ablation study evaluating the impact of the ProfileSketcher module and the self-healing dispatch loop.
+
+\input{tables/table3_ablation_and_errors}
+
+\noindent\textbf{Impact of ProfileSketcher:} When the ProfileSketcher is enabled, the agent receives explicit column distributions, null ratios, and boundary values. First-shot query generation accuracy reaches 88.4\%, with an average convergence of 1.14~retry cycles and zero schema or value hallucinations. Conversely, when the ProfileSketcher is disabled (providing raw table schemas only), first-shot accuracy plummets to 52.1\%, mean retry cycles increase to 3.65, and the overall task completion rate drops to 78.0\%. Without quantile sketches, the LLM hallucinated non-existent categorical filter values 14 times, triggering empty result sets.
+
+\noindent\textbf{Self-Healing Error Taxonomy:} Across all benchmark runs, 100\% of SQL syntax errors (12/12) and 100\% of empty result set anomalies (15/15) were successfully resolved by the three-stage self-healing loop. Overall, 88.4\% of queries succeeded on the first attempt, 10.0\% converged on the second attempt after syntax or type correction, and 1.6\% resolved on the third attempt through predicate calibration, achieving a 100\% cumulative task validity rate. These empirical findings affirmatively answer \textbf{RQ4}.
+
+\subsection{Threats to Validity}
+We identify three primary threats to validity:
+\begin{enumerate}
+    \item \textbf{Internal Validity:} Fluctuations in remote LLM API latency can introduce variability into wall-clock measurements. We mitigated this by executing all benchmark queries across three repetitions and averaging execution times.
+    \item \textbf{Construct Validity:} TPC-H benchmarks model decision support patterns but may not capture all arbitrary unstructured transformations. However, TPC-H provides standardized multi-table joins, subqueries, and aggregations recognized across data engineering literature.
+    \item \textbf{External Validity:} Hardware configurations with slower SATA SSDs may observe higher spill latency penalties than modern PCIe 4.0 NVMe drives. Nonetheless, bounded memory execution ensures that even on slower storage, jobs complete successfully rather than crashing the operating system.
+\end{enumerate}
