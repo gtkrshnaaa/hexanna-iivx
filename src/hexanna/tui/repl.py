@@ -71,12 +71,14 @@ class HexannaREPL:
         self,
         memory_limit: str = "2GB",
         model_name: str = "llama-3.3-70b-versatile",
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None
     ):
         self.console = Console()
         self.memory_limit = memory_limit
         self.model_name = model_name
         self.base_url = base_url or os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
+        self.api_key = api_key or os.getenv("LLM_API_KEY", "")
         self.engine = DuckDBAdapter(memory_limit=self.memory_limit)
         self.telemetry = PsutilTracker()
 
@@ -247,17 +249,40 @@ class HexannaREPL:
         trunc_note = " (truncated at limit 50)" if preview["is_truncated"] else ""
         self.console.print(f"[bright_black]Returned {preview['row_count']} rows{trunc_note}[/bright_black]\n")
 
+    @staticmethod
+    def _censor_secret(val: Optional[str]) -> str:
+        if not val or val == "EMPTY":
+            return "[bright_black]Not Set[/bright_black]"
+        return "[bright_black]****** (censored)[/bright_black]"
+
+    def _sanitize_message(self, msg: str) -> str:
+        sanitized = msg
+        for secret in (self.api_key, self.base_url):
+            if secret and len(secret) > 3:
+                sanitized = sanitized.replace(secret, "****** (censored)")
+        return sanitized
+
+    def _scrub_sensitive_history(self):
+        try:
+            curr_len = readline.get_current_history_length()
+            if curr_len > 0:
+                last_item = readline.get_history_item(curr_len)
+                if last_item and any(k in last_item.lower() for k in ("base_url", "api_key", "llm_api_key")):
+                    readline.remove_history_item(curr_len - 1)
+        except Exception:
+            pass
+
     def cmd_run(self, objective: str):
         goal = objective.strip()
         if not goal:
             self.console.print("[red][ERROR][/red] Objective required: /run <natural language task>")
             return
 
-        api_key = os.getenv("LLM_API_KEY")
+        api_key = self.api_key or os.getenv("LLM_API_KEY")
         if not api_key:
             self.console.print("[yellow][WARN][/yellow] LLM_API_KEY is not set. Execution may fail if remote API requires authentication.")
 
-        gateway = OpenAIGateway(model_name=self.model_name, base_url=self.base_url)
+        gateway = OpenAIGateway(model_name=self.model_name, base_url=self.base_url, api_key=api_key)
         runtime = HexannaRuntime(llm_gateway=gateway, tools=self.tools)
 
         self.console.print(Rule(f"Autonomous Goal: {goal}", style="cyan"))
@@ -266,7 +291,8 @@ class HexannaREPL:
             try:
                 state = runtime.run(goal)
             except Exception as err:
-                self.console.print(f"[red][ERROR][/red] Execution halted: {err}")
+                err_msg = self._sanitize_message(str(err))
+                self.console.print(f"[red][ERROR][/red] Execution halted: {err_msg}")
                 return
 
         # Display execution trace
@@ -316,32 +342,63 @@ class HexannaREPL:
             table.add_column("Setting", style="bold white")
             table.add_column("Current Value", style="cyan")
             table.add_row("Model Name", self.model_name)
-            table.add_row("Base URL", self.base_url)
+            table.add_row("Base URL", self._censor_secret(self.base_url))
+            table.add_row("API Key", self._censor_secret(self.api_key))
             table.add_row("Memory Limit", self.memory_limit)
             table.add_row("Temp Directory", self.engine.temp_directory)
             self.console.print(table)
-            self.console.print("[bright_black]Usage to update: /config <model|base_url|memory_limit> <value>[/bright_black]")
+            self.console.print("[bright_black]Usage to update: /config <model|base_url|api_key|memory_limit> [value][/bright_black]")
             return
 
         key = parts[0].lower()
-        if len(parts) < 2:
-            self.console.print(f"[red][ERROR][/red] Value required for setting '{key}'")
-            return
-        val = parts[1]
+        val = parts[1].strip() if len(parts) > 1 else ""
 
-        if key in ("model", "model_name"):
+        if key in ("base_url", "url"):
+            if not val:
+                import getpass
+                try:
+                    val = getpass.getpass("Enter Base URL (censored): ").strip()
+                except (KeyboardInterrupt, EOFError):
+                    self.console.print("\n[yellow]Canceled input.[/yellow]")
+                    return
+            if not val:
+                self.console.print("[red][ERROR][/red] Base URL cannot be empty.")
+                return
+            self.base_url = val
+            self.console.print("[green][OK][/green] Base URL set to: [bright_black]****** (censored)[/bright_black]")
+
+        elif key in ("api_key", "key"):
+            if not val:
+                import getpass
+                try:
+                    val = getpass.getpass("Enter API Key (censored): ").strip()
+                except (KeyboardInterrupt, EOFError):
+                    self.console.print("\n[yellow]Canceled input.[/yellow]")
+                    return
+            if not val:
+                self.console.print("[red][ERROR][/red] API key cannot be empty.")
+                return
+            self.api_key = val
+            self.console.print("[green][OK][/green] API Key set to: [bright_black]****** (censored)[/bright_black]")
+
+        elif key in ("model", "model_name"):
+            if not val:
+                self.console.print("[red][ERROR][/red] Value required for model")
+                return
             self.model_name = val
             self.console.print(f"[green][OK][/green] Model set to: [cyan]{self.model_name}[/cyan]")
-        elif key in ("base_url", "url"):
-            self.base_url = val
-            self.console.print(f"[green][OK][/green] Base URL set to: [cyan]{self.base_url}[/cyan]")
+
         elif key in ("memory", "memory_limit", "max_memory"):
+            if not val:
+                self.console.print("[red][ERROR][/red] Value required for memory_limit")
+                return
             self.memory_limit = val
             self.engine.memory_limit = val
             self.engine._conn.execute(f"SET max_memory = '{self.memory_limit}';")
             self.console.print(f"[green][OK][/green] Engine memory limit set to: [cyan]{self.memory_limit}[/cyan]")
+
         else:
-            self.console.print(f"[red][ERROR][/red] Unknown config setting '{key}'. Valid options: model, base_url, memory_limit")
+            self.console.print(f"[red][ERROR][/red] Unknown config setting '{key}'. Valid options: model, base_url, api_key, memory_limit")
 
     def run(self):
         """Main REPL loop."""
@@ -359,6 +416,10 @@ class HexannaREPL:
 
             if not user_input:
                 continue
+
+            # Scrub credentials from history buffer immediately if present
+            if any(k in user_input.lower() for k in ("base_url", "api_key", "llm_api_key")):
+                self._scrub_sensitive_history()
 
             # Command routing
             lower = user_input.lower()

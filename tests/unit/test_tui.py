@@ -98,9 +98,39 @@ def test_repl_cmd_config():
     out = string_io.getvalue()
     assert "Active Runtime Configuration" in out
     assert "llama-3.3-70b-versatile" in out
+    assert "(censored)" in out
+    # Raw default base URL must NOT be displayed
+    assert "https://api.groq.com/openai/v1" not in out
 
     repl.cmd_config("model custom-70b")
     assert repl.model_name == "custom-70b"
 
     repl.cmd_config("memory 4GB")
     assert repl.memory_limit == "4GB"
+
+def test_repl_credentials_censored():
+    repl = HexannaREPL()
+    string_io = StringIO()
+    repl.console = Console(file=string_io, no_color=True, width=120)
+
+    secret_url = "https://my-super-secret-endpoint.internal/v1"
+    repl.cmd_config(f"base_url {secret_url}")
+    out = string_io.getvalue()
+    assert repl.base_url == secret_url
+    assert secret_url not in out
+    assert "(censored)" in out
+
+    string_io.truncate(0)
+    string_io.seek(0)
+    secret_key = "sk-super-confidential-token-999"
+    repl.cmd_config(f"api_key {secret_key}")
+    out2 = string_io.getvalue()
+    assert repl.api_key == secret_key
+    assert secret_key not in out2
+    assert "(censored)" in out2
+
+    # Verify error message sanitization
+    sanitized = repl._sanitize_message(f"Fatal error reaching {secret_url} with {secret_key}")
+    assert secret_url not in sanitized
+    assert secret_key not in sanitized
+    assert "****** (censored)" in sanitized
