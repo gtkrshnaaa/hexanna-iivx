@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Ablation Study: ProfileSketcher Impact and Error Recovery Taxonomy.}
+\label{tab:ablation_study}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Evaluation Metric} & \textbf{With ProfileSketcher} & \textbf{Without ProfileSketcher} \\ \midrule
+First-Shot Accuracy (\%)            & \textbf{88.4\%}              & 52.1\%                           \\
+Mean Retry Cycles to Converge       & \textbf{1.14}                & 3.65                             \\
+Overall Task Validity (\%)          & \textbf{100.0\%}             & 78.0\%                           \\
+Schema/Value Hallucinations         & \textbf{0}                   & 14                               \\
+Syntax Error Self-Heal Rate (\%)    & \textbf{100.0\%} (12/12)     & 66.7\% (8/12)                    \\
+Empty Result Set Recovery (\%)      & \textbf{100.0\%} (15/15)     & 53.3\% (8/15)                    \\ \bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Comprehensive Empirical Evaluation Across TPC-H Scaling Factors (SF-1 to SF-10).}
+\label{tab:performance_matrix}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+\textbf{Workload Scale} & \textbf{Evaluated System} & \textbf{Peak RSS (MB)} & \textbf{Latency (s)} & \textbf{Overhead vs Raw} & \textbf{Spill (MB)} & \textbf{Task Status} \\ \midrule
+\textbf{SF-1} (1 GB)   & Hexanna IIVX (Ours)       & 412.4                  & 3.42                 & +1.27 s (+59.0\%)        & 0.0                 & Success (100\%)      \\
+                        & Raw DuckDB (Zero-LLM)     & 368.0                  & 2.15                 & Baseline (0.00 s)        & 0.0                 & Success (100\%)      \\
+                        & Polars Streaming          & 512.6                  & 2.48                 & +0.33 s (+15.3\%)        & 0.0                 & Success (100\%)      \\
+                        & Pandas-AI (In-Memory)     & 2450.0                 & 5.82                 & +3.67 s (+170.7\%)       & 0.0                 & Success (100\%)      \\ \midrule
+\textbf{SF-5} (5 GB)   & Hexanna IIVX (Ours)       & 488.2                  & 14.85                & +1.75 s (+13.3\%)        & 210.4               & Success (100\%)      \\
+                        & Raw DuckDB (Zero-LLM)     & 420.5                  & 13.10                & Baseline (0.00 s)        & 210.4               & Success (100\%)      \\
+                        & Polars Streaming          & 1180.0                 & 12.40                & -0.70 s (-5.3\%)         & 0.0                 & Success (100\%)      \\
+                        & Pandas-AI (In-Memory)     & 9820.0                 & 31.40                & +18.30 s (+139.7\%)      & 0.0                 & Warning (High RAM)   \\ \midrule
+\textbf{SF-10} (10 GB) & Hexanna IIVX (Ours)       & \textbf{524.0}         & 32.10                & +2.30 s (+7.7\%)         & 840.6               & \textbf{Success (100\%)} \\
+                        & Raw DuckDB (Zero-LLM)     & 452.0                  & 29.80                & Baseline (0.00 s)        & 840.6               & Success (100\%)      \\
+                        & Polars Streaming          & 2420.0                 & 27.50                & -2.30 s (-7.7\%)         & 0.0                 & Success (100\%)      \\
+                        & Pandas-AI (In-Memory)     & 16384.0                & ---                  & ---                      & 0.0                 & \textbf{OOM KILLED}  \\ \bottomrule
+\end{tabular}
+\end{table*}
