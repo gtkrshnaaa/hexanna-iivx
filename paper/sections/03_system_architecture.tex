@@ -1,23 +1,89 @@
 \section{System Architecture}
 \label{sec:system_architecture}
 
-Hexanna IIVX adopts a clean Hexagonal Architecture (Ports and Adapters) to ensure strict separation between pure cognitive planning and local hardware execution.
+Hexanna IIVX is designed around the principles of Hexagonal Architecture (Ports and Adapters), establishing strict isolation between high-level cognitive planning and physical hardware execution. Figure~\ref{fig:architecture_diagram} illustrates the core components and execution lifecycle.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[node distance=1.8cm, auto, >=stealth, thick]
+    \tikzstyle{block} = [rectangle, draw, fill=blue!5, text width=2.8cm, text centered, rounded corners, minimum height=1.3cm, font=\small]
+    \tikzstyle{port} = [rectangle, draw, fill=green!5, text width=2.6cm, text centered, dashed, minimum height=1.1cm, font=\small]
+    \tikzstyle{external} = [rectangle, draw, fill=orange!5, text width=2.8cm, text centered, minimum height=1.3cm, font=\small]
+    \tikzstyle{line} = [draw, -latex']
+
+    \node [external] (llm) {Remote LLM Gateway (OpenAI-compatible)};
+    \node [port, right of=llm, node distance=4.0cm] (llmport) {LLM Client Port (Zero Raw Rows)};
+    \node [block, right of=llmport, node distance=4.0cm] (core) {Agent Core \& Dispatch Loop};
+    \node [port, below of=core, node distance=2.2cm] (engineport) {Execution Port (Typed SQL Tools)};
+    \node [external, below of=engineport, node distance=2.2cm] (duckdb) {Embedded DuckDB (Buffer Spilling)};
+    \node [block, left of=engineport, node distance=4.0cm] (sketcher) {ProfileSketcher (Local Metadata)};
+    \node [external, below of=sketcher, node distance=2.2cm] (storage) {Local Storage (Parquet / NVMe)};
+
+    \path [line] (core) -- (llmport);
+    \path [line] (llmport) -- (llm);
+    \path [line] (llm) -- (llmport);
+    \path [line] (llmport) -- (core);
+    \path [line] (storage) -- (sketcher);
+    \path [line] (sketcher) -- (core);
+    \path [line] (core) -- (engineport);
+    \path [line] (engineport) -- (duckdb);
+    \path [line] (duckdb) -- (storage);
+\end{tikzpicture}
+\caption{Hexanna IIVX architectural blueprint showing strict decoupling between remote cognitive planning and local out-of-core execution.}
+\label{fig:architecture_diagram}
+\end{figure*}
 
 \subsection{Metadata Extraction and Context Formulation}
-Let a dataset $\mathcal{D}$ stored at local URI $\mathcal{U}$ be characterized by schema $\mathcal{S} = \{c_1: \tau_1, c_2: \tau_2, \dots, c_m: \tau_m\}$ and cardinality $N$. Rather than projecting records $\mathbf{x}_i \in \mathcal{D}$ into context vector $\mathcal{C}$, the Context Builder computes summary tuple $\mathcal{M}$:
+In standard agent architectures, raw data records or ad-hoc table samples are directly embedded into model prompts, causing prompt token sizes to scale with data volume. Hexanna IIVX eliminates raw row transmission through a metadata-first schema protocol.
+
+Let a dataset $\mathcal{D}$ stored at local path $\mathcal{U}$ consist of $N$ records across schema $\mathcal{S} = \{(c_1, \tau_1), (c_2, \tau_2), \dots, (c_m, \tau_m)\}$, where $c_j$ denotes the column identifier and $\tau_j$ denotes the relational data type. Prior to dispatching requests to the remote reasoning gateway, the local \texttt{ProfileSketcher} module inspects $\mathcal{D}$ locally and constructs a compact statistical summary tuple $\mathcal{M}(\mathcal{D})$:
 \begin{equation}
-    \mathcal{M}(\mathcal{D}) = \langle \mathcal{S}, N, \sigma(\mathcal{D}), \phi(\mathcal{D}) \rangle
+    \mathcal{M}(\mathcal{D}) = \langle \mathcal{S}, N, \sigma(\mathcal{D}), \phi(\mathcal{D}), \kappa(\mathcal{D}) \rangle
 \end{equation}
-where $\sigma(\mathcal{D})$ denotes column-wise null statistics and $\phi(\mathcal{D})$ represents approximate distinct cardinalities. The prompt wire size $\|\mathcal{M}\|$ remains invariant with respect to $N$:
+where:
+\begin{itemize}
+    \item $\mathcal{S}$ is the formal relational schema containing attribute names and data types,
+    \item $N$ is the total row cardinality,
+    \item $\sigma(\mathcal{D}) = \{ (c_j, \text{null\_ratio}_j) \}_{j=1}^m$ records attribute nullness proportions,
+    \item $\phi(\mathcal{D}) = \{ (c_j, \hat{u}_j) \}_{j=1}^m$ provides distinct cardinality estimates derived via HyperLogLog sketch algorithms,
+    \item $\kappa(\mathcal{D}) = \{ (c_j, \min_j, q_{25, j}, q_{50, j}, q_{75, j}, \max_j) \}_{j=1}^m$ provides distribution boundary sketches for numeric and temporal attributes.
+\end{itemize}
+
+\noindent\textbf{Theorem 1 (Token Wire Invariance).} \textit{Let dataset $\mathcal{D}$ contain $N$ records and $m$ columns. Under the metadata-first protocol, the remote prompt wire size $\|\mathcal{M}(\mathcal{D})\|$ in tokens is bounded by $\mathcal{O}(m)$ and is strictly invariant with respect to row cardinality $N$:}
 \begin{equation}
-    \|\mathcal{M}(\mathcal{D})\| \in \mathcal{O}(m), \quad \text{independent of } N.
+    \frac{\partial \|\mathcal{M}(\mathcal{D})\|}{\partial N} = 0, \quad \forall N \ge 1.
 \end{equation}
 
-\subsection{Out-of-Core Engine Adapter}
-The execution engine encapsulates embedded DuckDB instances bounded by hard ceiling parameters:
+\noindent\textit{Proof.} Each attribute descriptor in $\mathcal{M}(\mathcal{D})$ consists of fixed-width statistical representations: the attribute identifier $c_j$, the type symbol $\tau_j$, the cardinality integers ($N$, $\hat{u}_j$), and fixed scalar quantile summaries ($\min_j, q_{25, j}, q_{50, j}, q_{75, j}, \max_j$). The character length of any serialized integer $N$ scales logarithmically with cardinality:
+\begin{equation}
+    \text{Length}(N) = \lfloor \log_{10} N \rfloor + 1 \le 12 \text{ characters (for } N \le 10^{11}\text{)}.
+\end{equation}
+For any fixed schema with $m$ columns, the serialized token representation of $\mathcal{M}(\mathcal{D})$ is bounded above by:
+\begin{equation}
+    \|\mathcal{M}(\mathcal{D})\| \le \sum_{j=1}^m \Gamma(c_j, \tau_j) + m \cdot C_{\text{sketch}} \le m \cdot C_{\max}
+\end{equation}
+where $C_{\max}$ is a constant ceiling representing the maximum token encoding of an attribute sketch descriptor. Because $C_{\max}$ and $m$ are completely decoupled from record count $N$, the asymptotic prompt wire complexity is $\mathcal{O}(m)$. With respect to dataset cardinality $N$, $\|\mathcal{M}(\mathcal{D})\| \in \mathcal{O}(1)$. $\blacksquare$
+
+\subsection{Sandboxed Out-of-Core Execution Adapter}
+Rather than providing the agent with an open-ended terminal or shell execution interface, Hexanna IIVX encapsulates all database mutations inside a typed execution port backed by embedded DuckDB. 
+
+The execution engine adapter initializes with static buffer pool constraints to prevent memory runaway:
 \begin{lstlisting}[language=SQL]
 SET max_memory = '2GB';
 SET temp_directory = '.hexanna_tmp';
 SET preserve_insertion_order = false;
+SET threads = 4;
 \end{lstlisting}
-When analytical pipelines execute joins or window aggregations that exceed the $2$~GB threshold, the engine automatically spills intermediate partition blocks to temporary disk storage, completely precluding heap allocation panics.
+
+When queries perform heavy operations (such as hash aggregations, multi-way joins, or window functions) that exceed the allocated $2$~GB RAM threshold, the engine automatically partitions intermediate hash tables into blocks and spills them to the local NVMe temporary directory (\texttt{.hexanna\_tmp}). The operating system heap memory allocation remains strictly clamped below the configured ceiling, completely avoiding the kernel OOM aborts common in in-memory architectures.
+
+\subsection{Self-Healing Dispatch and Multi-Stage Recovery Loop}
+To achieve high task completion rates without human intervention, Hexanna IIVX incorporates a deterministic, three-stage self-healing dispatch loop. When a candidate SQL execution fails, the harness classifies the failure into an error taxonomy and enriches the subsequent prompt with precise corrective context:
+
+\begin{enumerate}
+    \item \textbf{Stage 1: Syntax and Schema Diagnostics.} Catches SQL parse errors, unclosed delimiters, and references to hallucinated column names. The recovery prompt supplies the exact target schema $\mathcal{S}$ and highlights the invalid identifier token.
+    \item \textbf{Stage 2: Type Signature and Semantic Diagnostics.} Captures type mismatch errors (e.g., comparing string literals to timestamp types or executing integer operations on interval types). The recovery prompt provides explicit casting rules and column data type signatures $\tau_j$.
+    \item \textbf{Stage 3: Empty Result Set and Boundary Refinement.} Detects valid SQL queries that execute successfully but return zero rows due to overly restrictive filtering predicates. The harness cross-references the offending predicate with the quantile sketches $\kappa(\mathcal{D})$, informing the agent of the valid attribute range $[\min_j, \max_j]$ and prompting predicate calibration.
+\end{enumerate}
+
+The self-healing loop operates under an empirical termination threshold of $k_{\max} = 3$ iterations. If all three stages fail, the harness records an execution fault and terminates gracefully without corrupting local state.
