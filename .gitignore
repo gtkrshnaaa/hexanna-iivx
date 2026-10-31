@@ -32,6 +32,15 @@ venv/
 ENV/
 env/
 
+# Environment and local secrets (air-gapped credentials)
+.env
+.env.*
+*.local
+*.local.*
+*.key
+*.secret
+benchmarks/local/
+
 # Hexanna temporary execution and data artifacts
 .hexanna_tmp/
 benchmarks/data/
