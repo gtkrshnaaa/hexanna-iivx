@@ -138,4 +138,4 @@ bash benchmarks/run_benchmarks.sh
 
 ## License
 
-Apache-2.0
+MIT

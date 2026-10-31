@@ -78,7 +78,7 @@ Hexanna IIVX operates on an asymmetric Edge-Cloud hybrid topology:
 ```text
 hexanna-iivx/
 ├── .gitignore
-├── LICENSE                             # Apache-2.0 License
+├── LICENSE                             # MIT License
 ├── README.md                           # Open-science reproducibility guide
 ├── pyproject.toml                      # Modern packaging with Hatch / Poetry
 ├── config/

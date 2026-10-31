@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A deterministic, metadata-driven agent harness for out-of-core local data engineering"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "Apache-2.0"
+license = "MIT"
 authors = [
     { name = "gtkrshnaaa" }
 ]
