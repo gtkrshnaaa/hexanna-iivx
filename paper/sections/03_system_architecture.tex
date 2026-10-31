@@ -88,4 +88,13 @@ To achieve high task completion rates without human intervention, Hexanna IIVX i
     \item \textbf{Stage 3: Empty Result Set and Boundary Refinement.} Detects valid SQL queries that execute successfully but return zero rows due to overly restrictive filtering predicates. The harness cross-references the offending predicate with the quantile sketches $\kappa(\mathcal{D})$, informing the agent of the valid attribute range $[\min_j, \max_j]$ and prompting predicate calibration.
 \end{enumerate}
 
-The self-healing loop operates under an empirical termination threshold of $k_{\max} = 3$ iterations. If all three stages fail, the harness records an execution fault and terminates gracefully without corrupting local state.
+Formally, let $q_k$ be the candidate query synthesized at iteration $k \le k_{\max}$, and let $E(q_k)$ denote the execution result returned by the engine adapter. The dispatch function $\mathcal{H}(q_k, E)$ maps the observed fault into a deterministic prompt mutation $\Delta_k$:
+\begin{equation}
+    \Delta_k = \begin{cases}
+    \text{DiagnoseSyntax}(q_k, \mathcal{S}) & \text{if } E \in \mathcal{E}_{\text{syntax}}, \\
+    \text{DiagnoseTypes}(q_k, \tau) & \text{if } E \in \mathcal{E}_{\text{type}}, \\
+    \text{CalibrateBoundaries}(q_k, \kappa) & \text{if } E \in \mathcal{E}_{\text{empty}}, \\
+    \emptyset & \text{if } E = \text{Success}.
+    \end{cases}
+\end{equation}
+The augmented reasoning context for iteration $k+1$ is assembled via surgical delta concatenation $\mathcal{P}_{k+1} = \mathcal{P}_k \oplus \Delta_k$, guaranteeing that the metadata invariant is strictly preserved while eliminating unconstrained conversation drift. The loop terminates upon success or when reaching $k_{\max} = 3$ iterations.

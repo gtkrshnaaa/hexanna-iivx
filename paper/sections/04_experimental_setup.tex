@@ -3,15 +3,15 @@
 
 To empirically validate Hexanna IIVX and address Research Questions RQ1 through RQ4, we establish a rigorous experimental benchmark replicating real-world edge data engineering workloads on commodity hardware.
 
-\subsection{Workstation Hardware and Execution Environment}
-All benchmarks are conducted on a commodity developer laptop representative of standard enterprise client environments:
-\begin{itemize}
-    \item \textbf{Processor:} Intel Core Ultra 5 (14 cores, 18 threads, up to 4.5~GHz boost clock).
-    \item \textbf{Memory:} 16~GB DDR5 5600~MHz RAM.
-    \item \textbf{Storage:} 256~GB PCIe 4.0 NVMe SSD (sequential read/write up to 5,000~MB/s).
-    \item \textbf{Operating System:} Ubuntu Linux 24.04 LTS (x86\_64, Linux Kernel 6.8.0).
-\end{itemize}
-To ensure strict reproducibility and isolate external host processes, all experimental runs are executed inside unprivileged Docker containers (Python 3.11-slim) with CPU and memory limits enforcing a 50\% host resource cap.
+\subsection{Workstation Hardware and Inference Gateway Configuration}
+All benchmark experiments were conducted on a dedicated commodity developer workstation: an Intel Core Ultra 5 (14 physical cores, 18 threads, up to 4.5~GHz boost clock), 16~GB DDR5 5600~MHz RAM, and a 256~GB PCIe 4.0 NVMe SSD (sequential read/write up to 5,000~MB/s) running Ubuntu Linux 24.04 LTS (x86\_64, Linux Kernel 6.8.0). To guarantee isolated telemetry and eliminate background interference, all pipelines were executed inside unprivileged Docker containers (Python 3.11-slim) subject to strict cgroup constraints (50\% CPU allocation, bounded thread contention).
+
+To rigorously evaluate the model-agnostic characteristics and cross-architecture generalizability of Hexanna IIVX, we evaluated two distinct, high-throughput, cost-effective inference engines via OpenAI-compatible REST gateways:
+\begin{enumerate}
+    \item \textbf{DeepSeek-V4.1-Flash}: Representing open-weight, mixture-of-experts (MoE) reasoning models optimized for code generation and structured semantic synthesis.
+    \item \textbf{Claude Haiku 5.5}: Representing high-speed, cost-effective commercial reasoning endpoints known for rigorous prompt instruction-following and deterministic tool execution.
+\end{enumerate}
+Temperature was clamped to $T = 0.0$ across all trials to enforce deterministic reasoning and repeatable SQL plan generation. All API payload exchanges were tracked via a custom telemetry proxy recording millisecond wire latencies and discrete token consumption.
 
 \subsection{Benchmark Workloads and Scale Factors}
 Workloads are derived from the industry-standard Transaction Processing Performance Council Ad-hoc Decision Support benchmark (TPC-H) \cite{tpch2021}. The benchmark database consists of eight relational tables (\texttt{lineitem}, \texttt{orders}, \texttt{customer}, \texttt{part}, \texttt{partsupp}, \texttt{supplier}, \texttt{nation}, and \texttt{region}). We generate datasets across three distinct Scale Factors:
@@ -41,6 +41,14 @@ We evaluate Hexanna IIVX against three competitive baselines:
     \item \textbf{Polars Streaming:} A high-performance vectorized DataFrame pipeline implemented in Polars \cite{polars2024} utilizing lazy execution graphs (\texttt{pl.scan\_parquet()}) and streaming execution (\texttt{.collect(streaming=True)}).
     \item \textbf{Pandas-AI (In-Memory Baseline):} The predominant in-memory agent paradigm \cite{mckinney2010pandas} that loads tables directly into Pandas DataFrames and synthesizes procedural Python transformation code.
 \end{enumerate}
+
+\paragraph{Baseline Systems and Justification}
+To properly isolate the computational and architectural characteristics of Hexanna IIVX, we classify our comparative evaluation across three distinct axes:
+\begin{itemize}
+    \item \textbf{Autonomous Status Quo (PandasAI)}: We select PandasAI not as an optimized out-of-core engine, but because it represents the dominant paradigm in existing open-source autonomous tabular agents. In these architectures, code generation agents materialize full dataframes into Python heap space, serving as a baseline to demonstrate the vulnerability of in-memory data engineering paradigms.
+    \item \textbf{Vectorized Streaming Baseline (Polars Streaming)}: Polars represents the state of the art in high-performance vectorized dataframes written in Rust. Utilizing lazy execution via \texttt{scan\_parquet()} with streaming mode, it evaluates how a modern multithreaded dataframe operates without hard physical memory buffer clamps.
+    \item \textbf{Theoretical Performance Ceiling (Raw DuckDB)}: Native DuckDB execution with identical 2~GB memory constraints and NVMe disk spilling, executed via hand-crafted, optimal SQL without any LLM orchestration. This baseline directly measures the marginal cognitive overhead (planning, serialization, tool invocation) introduced by our autonomous harness.
+\end{itemize}
 
 \subsection{Evaluation Metrics and Instrumentation}
 All experiments are recorded using high-precision non-invasive telemetry:

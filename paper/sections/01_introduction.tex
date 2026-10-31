@@ -16,16 +16,16 @@ Recent advancements in Large Language Models (LLMs) and autonomous agent framewo
 \small
 \caption{Architectural comparison of local data engineering paradigms.}
 \label{tab:agent_comparison}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lllll@{}}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Architectural Dimension} & \textbf{Hexanna IIVX (Ours)} & \textbf{Raw DuckDB} & \textbf{Polars Streaming} & \textbf{In-Memory Agents} \\ \midrule
-Autonomous Reasoning & Yes (LLM Planner) & No (Manual SQL) & No (Manual Code) & Yes (PandasAI) \\
-Execution Interface & Sandboxed Functional Tools & Direct SQL Client & DataFrame API & Arbitrary Python \texttt{eval()} \\
-Wire Data Exposure & Metadata Only ($\mathcal{O}(1)$) & Local Zero-Egress & Local Zero-Egress & Raw Rows in Prompt \\
-Memory Model & Bounded Out-of-Core ($<550$ MB) & Bounded Out-of-Core & Streaming Heap Buffer & Contiguous RAM ($\mathcal{O}(N)$) \\
-Disk Spilling Buffer & Automatic NVMe Spilling & Automatic NVMe Spilling & Limited Spill Support & None (OOM Crash) \\
-Self-Healing Recovery & Automated 3-Stage Dispatch & None & None & Naive Text Reprompt \\ \bottomrule
+Autonomous Reasoning    & Yes (LLM Planner)                & No (Manual SQL)    & No (Manual Code)         & Yes (PandasAI) \\
+Execution Interface     & Sandboxed Functional Tools       & Direct SQL Client  & DataFrame API            & Arbitrary Python \texttt{eval()} \\
+Wire Data Exposure      & Metadata Only ($\mathcal{O}(1)$) & Local Zero-Egress  & Local Zero-Egress        & Raw Rows in Prompt \\
+Memory Model            & Bounded Out-of-Core ($<550$~MB)  & Bounded Out-of-Core& Streaming Heap Buffer    & Contiguous RAM ($\mathcal{O}(N)$) \\
+Disk Spilling Buffer    & Automatic NVMe Spilling          & Automatic NVMe     & Limited Spill Support    & None (OOM Crash) \\
+Self-Healing Recovery   & Automated 3-Stage Dispatch       & None               & None                     & Naive Text Reprompt \\ \bottomrule
 \end{tabular}%
 }
 \end{table}
