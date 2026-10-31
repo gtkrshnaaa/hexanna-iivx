@@ -15,7 +15,7 @@ We sincerely thank the Reviewers for their constructive critiques, which have su
 - **Reviewer Critique:** Ambiguity regarding whether the harness relies on the latent parametric strength of a specific frontier model or whether the metadata-first protocol empowers cost-efficient lightweight models.
 - **Authors' Revision:** In Section 4.1 and Section 5.5 (Table 4), we have expanded our experimental benchmark to formally evaluate Hexanna IIVX across two complementary, cost-effective inference backends via OpenAI-compatible REST gateways:
   1. **DeepSeek-V4.1-Flash** (representing open-weight, mixture-of-experts MoE architectures optimized for code generation).
-  2. **Claude Haiku 5.5** (representing high-speed, cost-effective commercial reasoning APIs with strict instruction-following capabilities).
+  2. **Gemini 3.8 Flash** (representing high-speed, cost-effective commercial reasoning APIs with strict instruction-following capabilities).
 - **Key Finding:** We demonstrate that both models achieve 100.0% task validity within a maximum of two retry cycles across all TPC-H query profiles at SF-10 (60 million records). Prompt wire footprint remains strictly bounded at 846 vs. 848 tokens, empirically verifying the $\mathcal{O}(1)$ wire token complexity invariant (Theorem 1).
 
 ### 2. Rigorous Justification of Baselines ("Strawman" Framing Defense)

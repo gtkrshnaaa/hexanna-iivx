@@ -9,7 +9,7 @@ All benchmark experiments were conducted on a dedicated commodity developer work
 To rigorously evaluate the model-agnostic characteristics and cross-architecture generalizability of Hexanna IIVX, we evaluated two distinct, high-throughput, cost-effective inference engines via OpenAI-compatible REST gateways:
 \begin{enumerate}
     \item \textbf{DeepSeek-V4.1-Flash}: Representing open-weight, mixture-of-experts (MoE) reasoning models optimized for code generation and structured semantic synthesis.
-    \item \textbf{Claude Haiku 5.5}: Representing high-speed, cost-effective commercial reasoning endpoints known for rigorous prompt instruction-following and deterministic tool execution.
+    \item \textbf{Gemini 3.8 Flash}: Representing high-speed, cost-effective commercial reasoning endpoints known for rigorous prompt instruction-following and deterministic tool execution.
 \end{enumerate}
 Temperature was clamped to $T = 0.0$ across all trials to enforce deterministic reasoning and repeatable SQL plan generation. All API payload exchanges were tracked via a custom telemetry proxy recording millisecond wire latencies and discrete token consumption.
 
