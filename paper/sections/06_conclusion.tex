@@ -1,4 +1,22 @@
-\section{Conclusion}
+\section{Conclusion and Future Directions}
 \label{sec:conclusion}
 
-In this paper, we introduced \textbf{Hexanna IIVX}, a deterministic, metadata-driven agent harness engineered for local data engineering workloads. By decoupling reasoning from physical data execution and enforcing out-of-core streaming via embedded DuckDB engines, Hexanna IIVX eliminates memory exhaustion panics and protects sensitive data from leaving host boundaries. Empirical evaluations demonstrate invariant memory consumption ($<550$~MB RSS) across multi-gigabyte TPC-H workloads and a $100\%$ task completion success rate. Hexanna IIVX is completely open-sourced to foster reproducible data engineering research.
+In this paper, we introduced \textbf{Hexanna IIVX}, a deterministic, metadata-driven agent harness engineered specifically for out-of-core local data engineering on commodity developer workstations. By strictly separating remote cognitive planning from local physical execution via a hexagonal architecture, Hexanna IIVX overcomes the three central vulnerabilities of existing data agents: context window saturation, operating system kernel Out-of-Memory (OOM) panics, and unrestricted shell execution risks.
+
+Through formal mathematical proof and rigorous empirical benchmarking across the standardized TPC-H decision support suite, we demonstrated that:
+\begin{enumerate}
+    \item Hexanna IIVX maintains an invariant memory footprint ($<550$~MB RSS) when scaling from 1~GB to 10~GB datasets (60 million records), while in-memory DataFrame frameworks crash catastrophically due to RAM exhaustion.
+    \item The computational overhead of autonomous agent reasoning rapidly amortizes as dataset volume grows, decreasing from 59.0\% at SF-1 to just 7.7\% at SF-10 compared to direct hand-crafted SQL execution.
+    \item The metadata-first protocol achieves strict $\mathcal{O}(1)$ prompt token wire invariance ($\approx 840$ tokens), guaranteeing constant API communication costs and absolute data sovereignty for raw enterprise records.
+    \item The integration of the ProfileSketcher module and a three-stage self-healing dispatch loop elevates first-shot accuracy from 52.1\% to 88.4\%, achieving a 100\% overall task validity rate across scan, multi-way join, and subquery workloads.
+\end{enumerate}
+
+\subsection{Limitations and Future Work}
+While Hexanna IIVX demonstrates robust performance for structured analytical pipelines, several avenues for future research remain:
+\begin{itemize}
+    \item \textbf{Semi-Structured and Unstructured Data:} The current implementation focuses primarily on relational schemas and columnar Parquet tables. Future extensions will investigate out-of-core streaming and metadata profiling for large-scale nested JSON collections and multimodal documents.
+    \item \textbf{Adaptive Buffer Pool Tuning:} Hexanna IIVX currently configures static memory ceilings (e.g., $2$~GB). Incorporating continuous hardware telemetry to dynamically adapt buffer allocations according to available workstation memory could further minimize disk spilling without risking system stability.
+    \item \textbf{Multi-Agent Collaborative Profiling:} Decomposing data engineering objectives across specialized subagents (e.g., schema auditor, query planner, and validation verifier) may further enhance optimization for highly complex analytical workflows.
+\end{itemize}
+
+Hexanna IIVX is fully open-sourced under an permissive academic license, providing complete codebases, benchmark harnesses, and dataset synthesis scripts to support transparent reproducibility in autonomous data engineering systems.
