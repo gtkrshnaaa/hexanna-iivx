@@ -1,22 +1,53 @@
 \section{Experimental Setup}
 \label{sec:experimental_setup}
 
-\subsection{Workstation Hardware Configuration}
-All empirical benchmarks are conducted on a commodity developer workstation running Ubuntu Linux 24.04 LTS, equipped with an Intel Core Ultra 5 processor, 16~GB DDR5 RAM, and a 1~TB NVMe SSD.
+To empirically validate Hexanna IIVX and address Research Questions RQ1 through RQ4, we establish a rigorous experimental benchmark replicating real-world edge data engineering workloads on commodity hardware.
 
-\subsection{Benchmark Datasets}
-Workloads are synthesized using the industry-standard TPC-H benchmark suite \cite{tpch2021} generated via embedded DuckDB engines across three distinct Scale Factors:
+\subsection{Workstation Hardware and Execution Environment}
+All benchmarks are conducted on a commodity developer laptop representative of standard enterprise client environments:
 \begin{itemize}
-    \item \textbf{SF-1} ($1$~GB raw relational tables)
-    \item \textbf{SF-5} ($5$~GB raw relational tables)
-    \item \textbf{SF-10} ($10$~GB raw relational tables)
+    \item \textbf{Processor:} Intel Core Ultra 5 (14 cores, 18 threads, up to 4.5~GHz boost clock).
+    \item \textbf{Memory:} 16~GB DDR5 5600~MHz RAM.
+    \item \textbf{Storage:} 1~TB PCIe 4.0 NVMe Solid State Drive (sequential read/write up to 5,000~MB/s).
+    \item \textbf{Operating System:} Ubuntu Linux 24.04 LTS (x86\_64, Linux Kernel 6.8.0).
 \end{itemize}
-All tables are stored as compressed Parquet files with Zstandard (ZSTD) compression to reflect modern cloud-native edge storage practices.
+To ensure strict reproducibility and isolate external host processes, all experimental runs are executed inside unprivileged Docker containers (Python 3.11-slim) with CPU and memory limits enforcing a 50\% host resource cap.
 
-\subsection{Evaluation Metrics}
-System performance is evaluated along three primary dimensions:
+\subsection{Benchmark Workloads and Scale Factors}
+Workloads are derived from the industry-standard Transaction Processing Performance Council Ad-hoc Decision Support benchmark (TPC-H) \cite{tpch2021}. The benchmark database consists of eight relational tables (\texttt{lineitem}, \texttt{orders}, \texttt{customer}, \texttt{part}, \texttt{partsupp}, \texttt{supplier}, \texttt{nation}, \texttt{region}). We generate datasets across three distinct Scale Factors:
+\begin{itemize}
+    \item \textbf{SF-1:} 1~GB raw relational data ($\approx 6.0 \times 10^6$ \texttt{lineitem} records).
+    \item \textbf{SF-5:} 5~GB raw relational data ($\approx 3.0 \times 10^7$ \texttt{lineitem} records).
+    \item \textbf{SF-10:} 10~GB raw relational data ($\approx 6.0 \times 10^7$ \texttt{lineitem} records).
+\end{itemize}
+All tables are serialized in columnar Apache Parquet format \cite{arrow2024} using Zstandard (ZSTD) compression, matching modern cloud-native edge storage practices.
+
+\subsection{Granular Query Profiles}
+To evaluate behavior across diverse relational operators, we categorize workloads into three distinct analytical query profiles:
 \begin{enumerate}
-    \item \textbf{Peak Resident Set Size (RSS):} Continuous high-frequency memory tracking sampled at $50$~ms intervals via OS \texttt{psutil} daemons.
-    \item \textbf{Token Consumption:} Cumulative prompt and completion tokens exchanged with the remote reasoning gateway.
-    \item \textbf{Task Execution Success Rate:} Successful completion without unhandled runtime exceptions or out-of-memory kernel panics.
+    \item \textbf{Profile A: High-Selectivity Scan and Aggregation (TPC-H Q6).} 
+    Evaluates revenue impact within a restricted date range and discount bracket. This profile exercises high-throughput columnar scanning, dictionary-encoded filtering, and scalar aggregation over the massive \texttt{lineitem} table.
+    \item \textbf{Profile B: Multi-Way Relational Joins (TPC-H Q5).} 
+    Measures revenue generated through local suppliers within a specified geographic region. This profile executes a 5-way relational join across \texttt{customer}, \texttt{orders}, \texttt{lineitem}, \texttt{supplier}, \texttt{nation}, and \texttt{region}. It stresses hash-table build and probe phases and tests out-of-core join spilling when intermediate hash partitions exceed physical buffer memory.
+    \item \textbf{Profile C: Nested Subqueries and Correlated Aggregation (TPC-H Q17).} 
+    Calculates revenue loss from small-quantity orders by comparing individual lineitem quantities against the average order quantity for that part via a correlated subquery. This profile tests subquery decorrelation, grouping hash tables, and intermediate calculation stability.
 \end{enumerate}
+
+\subsection{Evaluated Systems and Baseline Taxonomy}
+We evaluate Hexanna IIVX against three competitive baselines:
+\begin{enumerate}
+    \item \textbf{Hexanna IIVX (Ours):} The autonomous agent harness utilizing remote LLM reasoning, metadata-first context sketching, and out-of-core DuckDB execution with buffer pool limits ($2$~GB limit, NVMe spill directory).
+    \item \textbf{Raw DuckDB (Zero-LLM Baseline):} Direct hand-optimized SQL executed natively on embedded DuckDB \cite{raasveldt2019duckdb} with identical memory clamps and spill configurations. This baseline establishes the theoretical execution speed ceiling and isolates the marginal latency overhead of agentic planning.
+    \item \textbf{Polars Streaming:} A high-performance vectorized DataFrame pipeline implemented in Polars \cite{polars2024} utilizing lazy execution graphs (\texttt{pl.scan\_parquet()}) and streaming execution (\texttt{.collect(streaming=True)}).
+    \item \textbf{Pandas-AI (In-Memory Baseline):} The predominant in-memory agent paradigm \cite{mckinney2010pandas} that loads tables directly into Pandas DataFrames and synthesizes procedural Python transformation code.
+\end{enumerate}
+
+\subsection{Evaluation Metrics and Instrumentation}
+All experiments are recorded using high-precision non-invasive telemetry:
+\begin{itemize}
+    \item \textbf{Peak Resident Set Size (Peak RSS):} Tracked at 50~ms intervals using an asynchronous \texttt{psutil} daemon, capturing peak physical RAM allocated by the process and all child threads.
+    \item \textbf{Wall-Clock Latency:} Measured in seconds from initial instruction receipt to complete materialization of final result sets.
+    \item \textbf{NVMe Disk Spill Volume:} Measured in megabytes (MB) of temporary swap files written to \texttt{.hexanna\_tmp} during execution.
+    \item \textbf{Wire Token Consumption:} Cumulative prompt and completion tokens transmitted across the remote model inference gateway.
+    \item \textbf{Task Validity and Convergence:} Binary success rate and mean retry iterations required to achieve verified analytical completion.
+\end{itemize}
