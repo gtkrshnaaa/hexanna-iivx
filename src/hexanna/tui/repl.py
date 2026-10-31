@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import glob
 import readline
 from typing import Optional, List, Dict, Any
@@ -38,6 +39,12 @@ class HexannaCompleter:
         "/history-chat",
         "/clear-history",
         "/artifacts",
+        "/models",
+        "/model",
+        "/switch",
+        "/export",
+        "/tables",
+        "/ls",
         "/memory",
         "/stats",
         "/config",
@@ -160,6 +167,10 @@ class HexannaREPL:
         table.add_row("/history-chat", "[session_id]", "Display message turns for a chat session from SQLite")
         table.add_row("/clear-history", "", "Purge all historical chat sessions and commands in SQLite")
         table.add_row("/artifacts", "[limit]", "List generated out-of-core dataset artifacts in SQLite")
+        table.add_row("/models", "", "List discoverable local and remote LLM models")
+        table.add_row("/model", "<model_id>", "Hot-swap active inference model in running session")
+        table.add_row("/export", "[md|json] [path]", "Export active session conversation trace to file")
+        table.add_row("/tables", "[dir]", "Discover local Parquet and CSV datasets in workspace")
         table.add_row("/memory", "", "Display process memory metrics and DuckDB disk spill stats")
         table.add_row("/config", "[key] [value]", "View or update model, memory limit, or base URL in SQLite")
         table.add_row("/clear", "", "Clear terminal screen and reprint banner")
@@ -536,6 +547,151 @@ class HexannaREPL:
         else:
             self.console.print(f"[red][ERROR][/red] Unknown config setting '{key}'. Valid options: model, base_url, api_key, memory_limit, delete")
 
+    def cmd_models(self):
+        models_data = []
+        local_cfg = os.path.join(os.getcwd(), "benchmarks", "local", "models.json")
+        if os.path.exists(local_cfg):
+            try:
+                with open(local_cfg, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                    for key, val in cfg.items():
+                        models_data.append({
+                            "id": val.get("model_id", key),
+                            "name": val.get("model_name", key),
+                            "provider": key.title(),
+                            "type": "Local Air-Gapped"
+                        })
+            except Exception:
+                pass
+
+        standards = [
+            {"id": "deepseek-flash", "name": "DeepSeek V4.1 Flash", "provider": "DeepSeek", "type": "Open-Weight MoE"},
+            {"id": "gemini-3.8-flash-high", "name": "Gemini 3.8 Flash (High)", "provider": "Google", "type": "Commercial Flash"},
+            {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B", "provider": "Meta / Groq", "type": "Open Source"}
+        ]
+        existing_ids = {m["id"].lower() for m in models_data}
+        for s in standards:
+            if s["id"].lower() not in existing_ids:
+                models_data.append(s)
+
+        table = Table(title="Inference Models Catalog", border_style="bright_black", show_lines=True)
+        table.add_column("Model ID", style="bold cyan")
+        table.add_column("Display Name", style="white")
+        table.add_column("Provider", style="bright_black")
+        table.add_column("Architecture / Tier", style="bright_black")
+        table.add_column("Active Status", justify="center")
+
+        for m in models_data:
+            is_active = (m["id"].lower() == self.model_name.lower())
+            status_str = "[bold green]ACTIVE[/bold green]" if is_active else "[bright_black]Available[/bright_black]"
+            table.add_row(m["id"], m.get("name", m["id"]), m.get("provider", "REST"), m.get("type", "Standard"), status_str)
+
+        self.console.print(table)
+        self.console.print(f"[bright_black]Switch active model via: [bold white]/model <model_id>[/bold white] or [bold white]/switch <model_id>[/bold white][/bright_black]\n")
+
+    def cmd_model(self, args: str):
+        new_model = args.strip()
+        if not new_model:
+            self.console.print(f"Current active model: [bold cyan]{self.model_name}[/bold cyan]")
+            self.console.print("[bright_black]Usage: /model <model_id> (e.g. /model deepseek-flash or /model gemini-3.8-flash-high)[/bright_black]")
+            return
+
+        self.model_name = new_model
+        self.history_db.set_config("model_name", new_model)
+        self.console.print(f"[green][OK][/green] Active inference model switched to: [bold cyan]{self.model_name}[/bold cyan] (saved to SQLite)")
+
+    def cmd_export(self, args: str):
+        parts = args.strip().split(maxsplit=1)
+        fmt = parts[0].lower() if parts else "markdown"
+        out_path = parts[1].strip() if len(parts) > 1 else None
+
+        messages = self.history_db.get_messages(self.session_id)
+        if fmt in ("md", "markdown"):
+            target_file = out_path or f"export_{self.session_id}.md"
+            lines = [
+                f"# Hexanna IIVX Session Trace: {self.session_id}",
+                f"- **Model:** {self.model_name}",
+                f"- **Exported At:** {time.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"- **Total Messages:** {len(messages)}",
+                "",
+                "---",
+                ""
+            ]
+            for idx, m in enumerate(messages, start=1):
+                lines.append(f"### Turn {idx}: {m.role.upper()}")
+                if m.role == "tool":
+                    lines.append(f"**Tool:** `{m.tool_name}` (Call ID: `{m.tool_call_id}`)")
+                    lines.append("```json")
+                    lines.append(m.content or "{}")
+                    lines.append("```")
+                elif m.tool_name:
+                    lines.append(f"**Invoked Tool:** `{m.tool_name}`")
+                    lines.append(f"**Arguments:** `{m.tool_arguments}`")
+                    if m.content:
+                        lines.append(m.content)
+                else:
+                    lines.append(m.content or "")
+                lines.append("")
+
+            with open(target_file, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+            self.console.print(f"[green][OK][/green] Exported {len(messages)} turns to Markdown: [bold cyan]{target_file}[/bold cyan]")
+
+        elif fmt == "json":
+            target_file = out_path or f"export_{self.session_id}.json"
+            payload = {
+                "session_id": self.session_id,
+                "model_name": self.model_name,
+                "exported_at": time.time(),
+                "messages": [
+                    {
+                        "turn": idx,
+                        "role": m.role,
+                        "content": m.content,
+                        "tool_call_id": m.tool_call_id,
+                        "tool_name": m.tool_name,
+                        "tool_arguments": m.tool_arguments,
+                        "timestamp": m.timestamp
+                    }
+                    for idx, m in enumerate(messages, start=1)
+                ]
+            }
+            with open(target_file, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            self.console.print(f"[green][OK][/green] Exported session trace to JSON: [bold cyan]{target_file}[/bold cyan]")
+        else:
+            self.console.print(f"[red][ERROR][/red] Unsupported export format '{fmt}'. Choose 'markdown' or 'json'.")
+
+    def cmd_tables(self, args: str):
+        target_dir = args.strip() or os.getcwd()
+        if not os.path.isdir(target_dir):
+            self.console.print(f"[red][ERROR][/red] Directory not found: {target_dir}")
+            return
+
+        table = Table(title=f"Discovered Tables & Datasets in {target_dir}", border_style="bright_black", show_lines=True)
+        table.add_column("File Name", style="bold cyan")
+        table.add_column("Format", style="white", width=8)
+        table.add_column("Size", style="cyan", justify="right")
+        table.add_column("Path", style="bright_black", overflow="fold")
+
+        found = 0
+        for root, _, files in os.walk(target_dir):
+            if any(p in root for p in (".git", ".venv", "venv", "__pycache__", ".pytest_cache")):
+                continue
+            for f in sorted(files):
+                ext = os.path.splitext(f)[1].lower()
+                if ext in (".parquet", ".csv", ".tsv"):
+                    found += 1
+                    full_p = os.path.join(root, f)
+                    sz_mb = os.path.getsize(full_p) / (1024 * 1024)
+                    fmt_label = ext.lstrip(".").upper()
+                    table.add_row(f, fmt_label, f"{sz_mb:.2f} MB", full_p)
+
+        if found == 0:
+            self.console.print(f"[bright_black]No Parquet or CSV tables found in {target_dir}.[/bright_black]")
+        else:
+            self.console.print(table)
+
     def run(self):
         """Main REPL loop."""
         self._running = True
@@ -552,6 +708,27 @@ class HexannaREPL:
 
             if not user_input:
                 continue
+
+            # Multi-line SQL detection (collect until line ends with ';')
+            sql_keywords = ("SELECT", "WITH", "DESCRIBE", "EXPLAIN", "SHOW", "PRAGMA", "CREATE")
+            if any(user_input.upper().startswith(kw) for kw in sql_keywords) and not user_input.rstrip().endswith(";"):
+                sql_lines = [user_input]
+                while True:
+                    try:
+                        cont_line = input("... > ").strip()
+                    except (KeyboardInterrupt, EOFError):
+                        self.console.print("\n[yellow]Canceled query input.[/yellow]")
+                        sql_lines = []
+                        break
+                    if not cont_line:
+                        continue
+                    sql_lines.append(cont_line)
+                    if cont_line.endswith(";"):
+                        break
+                if sql_lines:
+                    user_input = " ".join(sql_lines).rstrip(";")
+                else:
+                    continue
 
             # Scrub credentials from history buffer immediately if present
             if any(k in user_input.lower() for k in ("base_url", "api_key", "llm_api_key")):
@@ -582,6 +759,17 @@ class HexannaREPL:
                 self.cmd_clear_history()
             elif lower.startswith("/artifacts"):
                 self.cmd_artifacts(user_input[len("/artifacts"):])
+            elif lower == "/models":
+                self.cmd_models()
+            elif lower.startswith("/model"):
+                self.cmd_model(user_input[len("/model"):])
+            elif lower.startswith("/switch"):
+                self.cmd_model(user_input[len("/switch"):])
+            elif lower.startswith("/export"):
+                self.cmd_export(user_input[len("/export"):])
+            elif lower.startswith(("/tables", "/ls")):
+                prefix = "/tables" if lower.startswith("/tables") else "/ls"
+                self.cmd_tables(user_input[len(prefix):])
             elif lower.startswith("/inspect"):
                 self.cmd_inspect(user_input[len("/inspect"):])
             elif lower.startswith("/profile"):
@@ -592,10 +780,9 @@ class HexannaREPL:
                 self.cmd_run(user_input[len("/run"):])
             elif lower.startswith("/config"):
                 self.cmd_config(user_input[len("/config"):])
-            elif any(user_input.upper().startswith(sql_word) for sql_word in ("SELECT", "WITH", "DESCRIBE", "EXPLAIN", "SHOW", "PRAGMA")):
+            elif any(user_input.upper().startswith(sql_word) for sql_word in sql_keywords):
                 self.cmd_sql(user_input)
             else:
-                # Default natural language query routed to autonomous agent
                 self.console.print(f"[bright_black]Dispatching objective to agent harness:[/bright_black] {user_input}")
                 self.cmd_run(user_input)
 
