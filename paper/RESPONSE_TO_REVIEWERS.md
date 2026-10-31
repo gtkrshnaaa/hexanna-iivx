@@ -37,6 +37,6 @@ We believe these revisions address all reviewer concerns and establish a rigorou
 
 Sincerely,  
 **The Authors**  
-I Putu Gede Gilang Teja Krishna, S.Kom.  
-Sri Redjeki, S.Si., M.Kom., Ph.D.  
+I Putu Gede Gilang Teja Krishna  
+Sri Redjeki  
 *Faculty of Information Technology, Universitas Teknologi Digital Indonesia (UTDI)*
