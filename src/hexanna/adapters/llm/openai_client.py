@@ -15,9 +15,42 @@ class OpenAIGateway(ILLMGateway):
         timeout: Optional[float] = None
     ):
         self.timeout = timeout or ResourcePolicy.api_request_timeout
+        resolved_key = api_key
+        resolved_url = base_url
+
+        if not resolved_key or not resolved_url:
+            model_lower = model_name.lower()
+            if "deepseek" in model_lower:
+                resolved_key = resolved_key or os.getenv("DEEPSEEK_API_KEY")
+                resolved_url = resolved_url or os.getenv("DEEPSEEK_BASE_URL")
+            elif "gemini" in model_lower:
+                resolved_key = resolved_key or os.getenv("GEMINI_API_KEY")
+                resolved_url = resolved_url or os.getenv("GEMINI_BASE_URL")
+
+            # Check local benchmark models.json configuration if still unresolved
+            if not resolved_key or not resolved_url:
+                candidate_paths = [
+                    os.path.join(os.getcwd(), "benchmarks", "local", "models.json"),
+                    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "benchmarks", "local", "models.json")
+                ]
+                for p in candidate_paths:
+                    if os.path.exists(p):
+                        try:
+                            with open(p, "r", encoding="utf-8") as f:
+                                cfg = json.load(f)
+                                for model_family in ("deepseek", "gemini"):
+                                    if model_family in cfg and (
+                                        model_family in model_lower or cfg[model_family].get("model_id") == model_name
+                                    ):
+                                        resolved_key = resolved_key or cfg[model_family].get("api_key")
+                                        resolved_url = resolved_url or cfg[model_family].get("base_url")
+                        except Exception:
+                            pass
+                        break
+
         self.client = OpenAI(
-            api_key=api_key or os.getenv("LLM_API_KEY", "EMPTY"),
-            base_url=base_url or os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1"),
+            api_key=resolved_key or os.getenv("LLM_API_KEY", "EMPTY"),
+            base_url=resolved_url or os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1"),
             timeout=self.timeout
         )
         self.model_name = model_name
@@ -68,7 +101,7 @@ class OpenAIGateway(ILLMGateway):
 
                 return {
                     "role": "assistant",
-                    "content": message.content,
+                    "content": message.content or "",
                     "tool_calls": tool_calls_data,
                     "usage": usage_data
                 }
