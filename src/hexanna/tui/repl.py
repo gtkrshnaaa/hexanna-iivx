@@ -20,7 +20,7 @@ from hexanna.tools.schema_inspector import SchemaInspectorTool
 from hexanna.tools.out_of_core_sql import OutOfCoreSQLTool
 from hexanna.tools.profile_sketcher import ProfileSketcherTool
 from hexanna.harness.runtime import HexannaRuntime
-from hexanna.domain.exceptions import HexannaDomainException
+from hexanna.domain.exceptions import HexannaDomainException, InfiniteLoopDetectedException
 
 HISTORY_FILE = os.path.expanduser("~/.hexanna_history")
 
@@ -319,6 +319,10 @@ class HexannaREPL:
         with self.console.status("[cyan]Hexanna IIVX Agent is reasoning and executing...[/cyan]"):
             try:
                 state = runtime.run(goal, session_id=self.session_id)
+            except InfiniteLoopDetectedException as loop_err:
+                err_msg = self._sanitize_message(str(loop_err))
+                self.console.print(f"[bold red][CIRCUIT BREAKER][/bold red] {err_msg}")
+                return
             except Exception as err:
                 err_msg = self._sanitize_message(str(err))
                 self.console.print(f"[red][ERROR][/red] Execution halted: {err_msg}")

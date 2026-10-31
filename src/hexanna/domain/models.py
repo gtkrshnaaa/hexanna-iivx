@@ -30,6 +30,7 @@ class ExecutionState:
     objective: str
     iteration: int = 0
     max_iterations: int = 10
+    api_calls: int = 0
     history: List[Dict[str, Any]] = field(default_factory=list)
     completed: bool = False
     artifacts_created: List[str] = field(default_factory=list)

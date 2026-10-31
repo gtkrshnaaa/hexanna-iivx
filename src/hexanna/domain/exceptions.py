@@ -9,3 +9,7 @@ class OOMRiskExceededException(HexannaDomainException):
 class SandboxedToolViolation(HexannaDomainException):
     """Raised when an unwhitelisted or destructive action is requested."""
     pass
+
+class InfiniteLoopDetectedException(HexannaDomainException):
+    """Raised when an infinite loop or runaway API call pattern is detected."""
+    pass
