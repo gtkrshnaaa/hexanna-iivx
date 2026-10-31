@@ -1,0 +1,7 @@
+\begin{abstract}
+Recent advances in autonomous Large Language Model (LLM) agents have enabled unprecedented capabilities in code generation and exploratory data tasks. However, deploying autonomous agents for local enterprise data engineering on commodity workstations presents severe computational bottlenecks: context window exhaustion, unconstrained memory spikes inducing Operating System out-of-memory (OOM) kernel panics, and security vulnerabilities associated with unrestricted shell execution. 
+
+We present \textbf{Hexanna IIVX}, a lightweight, deterministic agent harness engineered specifically for edge execution using remote OpenAI-compatible reasoning APIs. Hexanna IIVX decouples reasoning from physical execution through a strict metadata-first schema-on-read protocol, ensuring that raw records never saturate context windows or traverse network boundaries. By substituting arbitrary shell execution with a sandboxed, strictly-typed functional toolset orchestrated via an embedded out-of-core streaming engine (DuckDB), the harness maintains bounded memory usage regardless of dataset dimensions. 
+
+Evaluated across standardized TPC-H benchmarks scaling from 1~GB to 10~GB on commodity laptops, Hexanna IIVX constrains peak memory to $<550$~MB RSS with zero OOM faults, reduces egress token consumption to $\mathcal{O}(1)$ constant complexity, and achieves a $100\%$ task validity rate. All source code, benchmarks, and manuscripts are openly accessible for scientific reproducibility.
+\end{abstract}

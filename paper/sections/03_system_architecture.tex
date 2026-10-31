@@ -1,0 +1,23 @@
+\section{System Architecture}
+\label{sec:system_architecture}
+
+Hexanna IIVX adopts a clean Hexagonal Architecture (Ports and Adapters) to ensure strict separation between pure cognitive planning and local hardware execution.
+
+\subsection{Metadata Extraction and Context Formulation}
+Let a dataset $\mathcal{D}$ stored at local URI $\mathcal{U}$ be characterized by schema $\mathcal{S} = \{c_1: \tau_1, c_2: \tau_2, \dots, c_m: \tau_m\}$ and cardinality $N$. Rather than projecting records $\mathbf{x}_i \in \mathcal{D}$ into context vector $\mathcal{C}$, the Context Builder computes summary tuple $\mathcal{M}$:
+\begin{equation}
+    \mathcal{M}(\mathcal{D}) = \langle \mathcal{S}, N, \sigma(\mathcal{D}), \phi(\mathcal{D}) \rangle
+\end{equation}
+where $\sigma(\mathcal{D})$ denotes column-wise null statistics and $\phi(\mathcal{D})$ represents approximate distinct cardinalities. The prompt wire size $\|\mathcal{M}\|$ remains invariant with respect to $N$:
+\begin{equation}
+    \|\mathcal{M}(\mathcal{D})\| \in \mathcal{O}(m), \quad \text{independent of } N.
+\end{equation}
+
+\subsection{Out-of-Core Engine Adapter}
+The execution engine encapsulates embedded DuckDB instances bounded by hard ceiling parameters:
+\begin{lstlisting}[language=SQL]
+SET max_memory = '2GB';
+SET temp_directory = '.hexanna_tmp';
+SET preserve_insertion_order = false;
+\end{lstlisting}
+When analytical pipelines execute joins or window aggregations that exceed the $2$~GB threshold, the engine automatically spills intermediate partition blocks to temporary disk storage, completely precluding heap allocation panics.

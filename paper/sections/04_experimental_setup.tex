@@ -1,0 +1,22 @@
+\section{Experimental Setup}
+\label{sec:experimental_setup}
+
+\subsection{Workstation Hardware Configuration}
+All empirical benchmarks are conducted on a commodity developer workstation running Ubuntu Linux 24.04 LTS, equipped with an Intel Core Ultra 5 processor, 16~GB DDR5 RAM, and a 1~TB NVMe SSD.
+
+\subsection{Benchmark Datasets}
+Workloads are synthesized using the industry-standard TPC-H benchmark suite \cite{tpch2021} generated via embedded DuckDB engines across three distinct Scale Factors:
+\begin{itemize}
+    \item \textbf{SF-1} ($1$~GB raw relational tables)
+    \item \textbf{SF-5} ($5$~GB raw relational tables)
+    \item \textbf{SF-10} ($10$~GB raw relational tables)
+\end{itemize}
+All tables are stored as compressed Parquet files with Zstandard (ZSTD) compression to reflect modern cloud-native edge storage practices.
+
+\subsection{Evaluation Metrics}
+System performance is evaluated along three primary dimensions:
+\begin{enumerate}
+    \item \textbf{Peak Resident Set Size (RSS):} Continuous high-frequency memory tracking sampled at $50$~ms intervals via OS \texttt{psutil} daemons.
+    \item \textbf{Token Consumption:} Cumulative prompt and completion tokens exchanged with the remote reasoning gateway.
+    \item \textbf{Task Execution Success Rate:} Successful completion without unhandled runtime exceptions or out-of-memory kernel panics.
+\end{enumerate}

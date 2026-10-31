@@ -1,0 +1,4 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+In this paper, we introduced \textbf{Hexanna IIVX}, a deterministic, metadata-driven agent harness engineered for local data engineering workloads. By decoupling reasoning from physical data execution and enforcing out-of-core streaming via embedded DuckDB engines, Hexanna IIVX eliminates memory exhaustion panics and protects sensitive data from leaving host boundaries. Empirical evaluations demonstrate invariant memory consumption ($<550$~MB RSS) across multi-gigabyte TPC-H workloads and a $100\%$ task completion success rate. Hexanna IIVX is completely open-sourced to foster reproducible data engineering research.

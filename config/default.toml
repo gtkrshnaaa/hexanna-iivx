@@ -1,0 +1,18 @@
+[engine]
+memory_limit = "2GB"
+temp_directory = ".hexanna_tmp"
+preserve_insertion_order = false
+
+[llm]
+provider = "openai_compatible"
+model = "llama-3.3-70b-versatile"
+temperature = 0.0
+base_url = "https://api.groq.com/openai/v1"
+
+[runtime]
+max_iterations = 10
+timeout_seconds = 300.0
+
+[telemetry]
+sampling_interval_seconds = 0.05
+enabled = true

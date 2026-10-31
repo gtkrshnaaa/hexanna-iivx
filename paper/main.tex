@@ -1,0 +1,51 @@
+\documentclass[preprint,12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{teal}
+}
+
+\title{\textbf{A Deterministic, Metadata-Driven Agent Harness for Out-of-Core Local Data Engineering}}
+
+\author{
+    gtkrshnaaa \\
+    \small Department of Informatics / Computer Science \\
+    \small \texttt{gtkrshnaaa@users.noreply.github.com}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/00_abstract}
+
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_system_architecture}
+\input{sections/04_experimental_setup}
+\input{sections/05_results_and_discussion}
+\input{sections/06_conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

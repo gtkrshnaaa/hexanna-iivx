@@ -1,0 +1,11 @@
+\section{Related Work}
+\label{sec:related_work}
+
+\subsection{Autonomous LLM Agents for Analytical Code Generation}
+Autonomous agent frameworks leverage Large Language Models (LLMs) to iteratively decompose high-level objectives into executable actions \cite{yao2022react}. In exploratory data analysis, agents such as PandasAI synthesize Pandas scripts dynamically. While viable for small educational datasets, in-memory execution structures require allocating contiguous matrices in RAM, scaling linearly with dataset size $\mathcal{O}(N)$ and precipitating Operating System kernel Out-of-Memory (OOM) faults when scaling past physical workstation ceilings.
+
+\subsection{Tool Use and Deterministic Sandboxing}
+Toolformer \cite{schick2023toolformer} and modern function-calling protocols demonstrate that grounding LLM generations through structured APIs dramatically curtails hallucination rates. However, general-purpose autonomous agents frequently rely on raw terminal interpreters (e.g., Bash execution), exposing host environments to non-deterministic side effects, path traversal vulnerabilities, and arbitrary command execution. Hexanna IIVX replaces arbitrary shell execution with typed functional schemas that restrict agent actions strictly to analytical SQL operations.
+
+\subsection{Embedded Out-of-Core Analytical Engines}
+DuckDB \cite{raasveldt2019duckdb} has emerged as a high-performance embedded analytical engine capable of processing columnar datasets directly from disk via vectorized interpretation. By leveraging partitioned hash joins, compressed Parquet storage formats, and automatic buffer pool disk spilling, DuckDB enables execution of complex analytical queries while enforcing hard memory allocations. Hexanna IIVX integrates DuckDB as an out-of-core engine adapter within a hexagonal architecture, isolating remote LLM reasoning from host execution boundaries.
