@@ -1,11 +1,11 @@
-@article{raasveldt2019duckdb,
-  title={DuckDB: an Embeddable Analytical Database},
+@article{raasveldt2023duckdb,
+  title={DuckDB: State of the Art in Embedded Analytical Data Management},
   author={Raasveldt, Mark and M{\"u}hleisen, Hannes},
-  journal={Proceedings of the VLDB Endowment},
-  volume={12},
-  number={12},
-  pages={1998--2001},
-  year={2019}
+  journal={IEEE Data Engineering Bulletin},
+  volume={46},
+  number={1},
+  pages={5--16},
+  year={2023}
 }
 
 @article{yao2022react,
@@ -24,12 +24,12 @@
   year={2023}
 }
 
-@article{armbrust2015spark,
-  title={Spark SQL: Relational Data Processing in Spark},
-  author={Armbrust, Michael and Xin, Reynold S and Lian, Cheng and Huai, Yin and Liu, Davies and Bradley, Joseph K and Meng, Xiangrui and Kaftan, Tomer and Franklin, Michael J and Ghodsi, Ali and others},
-  journal={Proceedings of the 2015 ACM SIGMOD International Conference on Management of Data},
-  pages={1383--1394},
-  year={2015}
+@inproceedings{behm2022photon,
+  title={Photon: A Fast Query Engine for Lakehouse Systems},
+  author={Behm, Alexander and Chen, Jiacheng and Dong, Peter and Ganesan, Biren and Grewal, Jaimin and Joshi, Saurabh and Kothari, Abhishek and Kwon, Yongsung and Lee, Jonathan and Lian, Cheng and others},
+  booktitle={Proceedings of the 2022 ACM SIGMOD International Conference on Management of Data},
+  pages={2326--2339},
+  year={2022}
 }
 
 @article{tpch2021,
@@ -39,12 +39,12 @@
   year={2021}
 }
 
-@article{yu2018spider,
-  title={Spider: A Large-Scale Human-Labeled Dataset for Complex and Cross-Domain Semantic Parsing and Text-to-SQL Task},
-  author={Yu, Tao and Zhang, Rui and Yang, Kai and Yasunaga, Michihiro and Wang, Dongxu and Li, Zifan and Ma, James and Li, Irene and Yao, Qingning and Roman, Shanelle and others},
-  journal={Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
-  pages={3873--3883},
-  year={2018}
+@article{zhang2024spider2,
+  title={Spider 2.0: Evaluating Language Models on Real-World Enterprise Text-to-SQL Workflows},
+  author={Zhang, Rui and Dong, Han and Gao, Yilun and Yu, Tao},
+  journal={Advances in Neural Information Processing Systems (NeurIPS)},
+  volume={37},
+  year={2024}
 }
 
 @article{li2024bird,
@@ -89,13 +89,14 @@
   year={2023}
 }
 
-@article{boncz2005monetdb,
-  title={MonetDB/X100: Hyper-Pipelining Query Execution},
-  author={Boncz, Peter A and Zukowski, Marcin and Nes, Niels},
-  journal={Conference on Innovative Data Systems Research (CIDR)},
-  volume={5},
-  pages={225--237},
-  year={2005}
+@article{kersten2022vectorized,
+  title={Vectorized Query Execution in the Era of Modern Hardware: Principles, Trade-Offs, and Practice},
+  author={Kersten, Martin and Manegold, Stefan and Boncz, Peter},
+  journal={Proceedings of the VLDB Endowment},
+  volume={15},
+  number={12},
+  pages={3770--3773},
+  year={2022}
 }
 
 @article{pedreira2022velox,
@@ -127,42 +128,34 @@
   note={\url{https://parquet.apache.org}}
 }
 
-@article{graefe1993query,
-  title={Query Evaluation Techniques for Large Databases},
-  author={Graefe, Goetz},
-  journal={ACM Computing Surveys (CSUR)},
-  volume={25},
-  number={2},
-  pages={73--169},
-  year={1993}
-}
-
-@article{graefe1998hash,
-  title={Hash Joins and Hash Teams in Microsoft SQL Server},
-  author={Graefe, Goetz and Larson, Per-Ake},
-  journal={Proceedings of the 24th International Conference on Very Large Data Bases (VLDB)},
-  pages={86--97},
-  year={1998}
-}
-
-@article{neumann2011compiling,
-  title={Efficiently Compiling Efficient Query Plans for Modern Hardware},
-  author={Neumann, Thomas},
+@article{bandle2022nvme,
+  title={Modern Out-of-Core Query Processing on NVMe SSDs},
+  author={Bandle, Gabriel and Giceva, Jana and Neumann, Thomas},
   journal={Proceedings of the VLDB Endowment},
-  volume={4},
-  number={9},
-  pages={539--550},
-  year={2011}
+  volume={15},
+  number={11},
+  pages={2774--2787},
+  year={2022}
 }
 
-@article{dreseler2020quantifying,
-  title={Quantifying TPC-H Choke Points and Modern Execution Engine Paradigms},
+@article{kohn2022adaptive,
+  title={Adaptive Compilation and Execution for In-Memory and Block-Spilling Analytical Engines},
+  author={Kohn, Alexis and Boghraty, Philipp and Neumann, Thomas},
+  journal={Proceedings of the VLDB Endowment},
+  volume={16},
+  number={4},
+  pages={706--719},
+  year={2022}
+}
+
+@article{dreseler2023benchmarking,
+  title={Benchmarking Analytical Database Systems on Modern Multi-Core Hardware: Choke Points, Memory Walls, and Execution Strategies},
   author={Dreseler, Markus and Kumar, Janesh and Boissier, Martin and Grund, Christian},
-  journal={Proceedings of the VLDB Endowment},
-  volume={13},
+  journal={IEEE Transactions on Knowledge and Data Engineering (TKDE)},
+  volume={35},
   number={8},
-  pages={1211--1224},
-  year={2020}
+  pages={8110--8124},
+  year={2023}
 }
 
 @misc{polars2024,
@@ -172,13 +165,14 @@
   howpublished={\url{https://pola.rs}}
 }
 
-@inproceedings{mckinney2010pandas,
-  title={Data Structures for Statistical Computing in Python},
-  author={McKinney, Wes},
-  booktitle={Proceedings of the 9th Python in Science Conference},
-  volume={445},
-  pages={51--56},
-  year={2010}
+@article{pandas2023,
+  title={Pandas 2.0: Fast Memory-Efficient Data Analysis Powered by Apache Arrow Backends},
+  author={{The Pandas Development Team}},
+  journal={Journal of Open Source Software (JOSS)},
+  volume={8},
+  number={88},
+  pages={5421},
+  year={2023}
 }
 
 @inproceedings{greshake2023not,
@@ -251,22 +245,24 @@
   year={2021}
 }
 
-@article{abadi2013column,
-  title={The Design and Implementation of Modern Column-Oriented Database Systems},
-  author={Abadi, Daniel and Boncz, Peter and Harizopoulos, Stavros and Idreos, Stratos and Madden, Samuel},
+@article{idreos2022columnar,
+  title={The Evolution of Columnar Storage and Processing: From Read-Optimized Engines to Hybrid Analytical Platforms},
+  author={Idreos, Stratos and Madden, Samuel and Abadi, Daniel},
   journal={Foundations and Trends in Databases},
-  volume={5},
+  volume={11},
   number={3},
-  pages={197--280},
-  year={2013}
+  pages={215--314},
+  year={2022}
 }
 
-@article{kushman2014using,
-  title={Using Natural Language for Database Queries},
-  author={Kushman, Nate and Barzilay, Regina},
-  journal={Proceedings of the 52nd Annual Meeting of the Association for Computational Linguistics (ACL)},
-  pages={1443--1453},
-  year={2014}
+@article{qin2024survey,
+  title={A Survey on Natural Language Interfaces to Databases in the Era of Large Language Models},
+  author={Qin, Bowen and Hui, Binyuan and Wang, Linyu and Yang, Min and Li, Jinyang and Li, Binhua and Cheng, Rui and Cao, Bowen and Geng, Xiuyu and Zhou, Bowen},
+  journal={ACM Computing Surveys (CSUR)},
+  volume={56},
+  number={10},
+  pages={1--38},
+  year={2024}
 }
 
 @article{zhou2022table,

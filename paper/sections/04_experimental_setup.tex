@@ -37,9 +37,9 @@ To evaluate behavior across diverse relational operators, we categorize workload
 We evaluate Hexanna IIVX against three competitive baselines:
 \begin{enumerate}
     \item \textbf{Hexanna IIVX (Ours):} The autonomous agent harness utilizing remote LLM reasoning, metadata-first context sketching, and out-of-core DuckDB execution with buffer pool limits ($2$~GB limit, NVMe spill directory).
-    \item \textbf{Raw DuckDB (Zero-LLM Baseline):} Direct hand-optimized SQL executed natively on embedded DuckDB \cite{raasveldt2019duckdb} with identical memory clamps and spill configurations. This baseline establishes the theoretical execution speed ceiling and isolates the marginal latency overhead of agentic planning.
+    \item \textbf{Raw DuckDB (Zero-LLM Baseline):} Direct hand-optimized SQL executed natively on embedded DuckDB \cite{raasveldt2023duckdb} with identical memory clamps and spill configurations. This baseline establishes the theoretical execution speed ceiling and isolates the marginal latency overhead of agentic planning.
     \item \textbf{Polars Streaming:} A high-performance vectorized DataFrame pipeline implemented in Polars \cite{polars2024} utilizing lazy execution graphs (\texttt{pl.scan\_parquet()}) and streaming execution (\texttt{.collect(streaming=True)}).
-    \item \textbf{Pandas-AI (In-Memory Baseline):} The predominant in-memory agent paradigm \cite{mckinney2010pandas} that loads tables directly into Pandas DataFrames and synthesizes procedural Python transformation code.
+    \item \textbf{Pandas-AI (In-Memory Baseline):} The predominant in-memory agent paradigm \cite{pandas2023} that loads tables directly into Pandas DataFrames and synthesizes procedural Python transformation code.
 \end{enumerate}
 
 \paragraph{Baseline Systems and Justification}
