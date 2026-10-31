@@ -15,7 +15,7 @@ Table~\ref{tab:performance_matrix} and Figure~\ref{fig:memory_chart} summarize p
 \label{fig:memory_chart}
 \end{figure}
 
-The empirical findings confirm the severe vulnerability of in-memory agent frameworks. At SF-1 (1~GB), Pandas-AI requires 2,450.0~MB of RAM. Scaling to SF-5 increases memory consumption to 9,820.0~MB, consuming over 61\% of workstation capacity and causing noticeable system lag. At SF-10 (10~GB Parquet, $\approx 60$ million records), Pandas-AI attempts to allocate over 16~GB of contiguous memory, exhausting physical RAM and swap space, resulting in an unrecoverable Operating System Out-of-Memory (OOM) killer abort.
+The empirical findings confirm the severe vulnerability of in-memory agent frameworks. At SF-1 (1~GB), Pandas-AI requires 2,450.0~MB of RAM. Scaling to SF-5 increases memory consumption to 9,820.0~MB, exceeding the laptop's 7.0~GiB addressable physical RAM, inducing severe swap memory thrashing and system unresponsiveness. At SF-10 (10~GB Parquet, $\approx 60$ million records), Pandas-AI attempts to allocate over 16~GB of contiguous memory, completely exhausting both physical RAM and swap space, resulting in an unrecoverable Operating System Out-of-Memory (OOM) killer abort.
 
 In sharp contrast, Hexanna IIVX demonstrates an invariant, flat memory profile. Peak RSS increases modestly from 412.4~MB at SF-1 to 488.2~MB at SF-5 and caps at 524.0~MB at SF-10. This represents an asymptotic memory bound that operates completely independent of dataset cardinality, directly validating \textbf{RQ1}. 
 
@@ -35,7 +35,7 @@ To isolate the computational cost of autonomous agent reasoning, we compare Hexa
 
 However, as dataset scale expands, query execution time becomes dominated by physical I/O and relational join computation. At SF-5, Hexanna IIVX completes in 14.85~seconds versus 13.10~seconds for Raw DuckDB (+1.75~s, +13.3\% overhead). At SF-10, Hexanna IIVX completes in 32.10~seconds compared to 29.80~seconds for Raw DuckDB, reducing relative orchestration overhead to just +2.30~seconds (+7.7\%). 
 
-This empirical trend directly addresses \textbf{RQ2}: the marginal latency cost of autonomous agent planning is additive and bounded, rapidly amortizing as dataset scale grows. Furthermore, the I/O latency penalty incurred by NVMe disk spilling (840.6~MB spilled at SF-10) is remarkably modest on modern PCIe 4.0 storage, adding less than 3~seconds while guaranteeing complete immunity from fatal memory crashes.
+This empirical trend directly addresses \textbf{RQ2}: the marginal latency cost of autonomous agent planning is additive and bounded, rapidly amortizing as dataset scale grows. Furthermore, the I/O latency penalty incurred by NVMe disk spilling (840.6~MB spilled at SF-10) is remarkably modest on modern PCIe 3.0 NVMe storage, adding less than 3~seconds while guaranteeing complete immunity from fatal memory crashes.
 
 \subsection{Granular Analysis Across Query Profiles}
 Table~\ref{tab:query_profiles} breaks down system performance across the three representative analytical query profiles at SF-10.
@@ -100,5 +100,5 @@ We identify three primary threats to validity:
 \begin{enumerate}
     \item \textbf{Internal Validity:} Fluctuations in remote LLM API latency can introduce variability into wall-clock measurements. We mitigated this by executing all benchmark queries across three repetitions and averaging execution times.
     \item \textbf{Construct Validity:} TPC-H benchmarks model decision support patterns but may not capture all arbitrary unstructured transformations. However, TPC-H provides standardized multi-table joins, subqueries, and aggregations recognized across data engineering literature.
-    \item \textbf{External Validity:} Hardware configurations with slower SATA SSDs may observe higher spill latency penalties than modern PCIe 4.0 NVMe drives. Nonetheless, bounded memory execution ensures that even on slower storage, jobs complete successfully rather than crashing the operating system.
+    \item \textbf{External Validity:} Hardware configurations with legacy SATA SSDs may observe higher spill latency penalties than high-speed PCIe NVMe drives. Nonetheless, bounded memory execution ensures that even on slower storage, jobs complete successfully rather than crashing the operating system.
 \end{enumerate}
