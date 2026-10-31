@@ -20,8 +20,8 @@ def main():
 
     # Command: repl
     repl_parser = subparsers.add_parser("repl", help="Launch interactive TUI REPL session")
-    repl_parser.add_argument("--model", type=str, default="llama-3.3-70b-versatile", help="Model name")
-    repl_parser.add_argument("--max-memory", type=str, default="2GB", help="DuckDB memory ceiling")
+    repl_parser.add_argument("--model", type=str, default=None, help="Model name")
+    repl_parser.add_argument("--max-memory", type=str, default=None, help="DuckDB memory ceiling")
 
     # Command: history
     hist_parser = subparsers.add_parser("history", help="List recent commands from SQLite history")
@@ -30,6 +30,10 @@ def main():
     # Command: sessions
     sess_parser = subparsers.add_parser("sessions", help="List saved chat sessions from SQLite history")
     sess_parser.add_argument("--limit", type=int, default=20, help="Number of sessions to show")
+
+    # Command: artifacts
+    art_parser = subparsers.add_parser("artifacts", help="List generated out-of-core dataset artifacts")
+    art_parser.add_argument("--limit", type=int, default=20, help="Number of artifacts to show")
 
     # Command: run
     run_parser = subparsers.add_parser("run", help="Execute an autonomous goal")
@@ -56,8 +60,8 @@ def main():
     args = parser.parse_args()
 
     if not args.command or args.command == "repl":
-        model = getattr(args, "model", "llama-3.3-70b-versatile")
-        max_mem = getattr(args, "max_memory", "2GB")
+        model = getattr(args, "model", None)
+        max_mem = getattr(args, "max_memory", None)
         repl = HexannaREPL(memory_limit=max_mem, model_name=model)
         repl.run()
         sys.exit(0)
@@ -82,6 +86,13 @@ def main():
             for s in db.list_sessions(limit=args.limit)
         ]
         print(json.dumps(sessions, indent=2))
+        db.close()
+        sys.exit(0)
+
+    elif args.command == "artifacts":
+        db = SQLiteChatHistory()
+        records = db.list_artifacts(limit=args.limit)
+        print(json.dumps(records, indent=2))
         db.close()
         sys.exit(0)
 

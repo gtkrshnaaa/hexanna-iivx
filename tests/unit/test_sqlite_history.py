@@ -69,8 +69,49 @@ def test_clear_history(sqlite_db):
     sqlite_db.create_session("sess_clear", "Temporary")
     sqlite_db.add_message("sess_clear", "user", "Hello")
     sqlite_db.add_command("test command", session_id="sess_clear")
+    sqlite_db.record_artifact("sess_clear", "data/test.parquet", 100, 10)
 
     sqlite_db.clear_history()
     assert len(sqlite_db.list_sessions()) == 0
     assert len(sqlite_db.list_commands()) == 0
     assert len(sqlite_db.get_messages("sess_clear")) == 0
+    assert len(sqlite_db.list_artifacts()) == 0
+
+def test_sqlite_config_storage(sqlite_db):
+    sqlite_db.set_config("base_url", "https://api.groq.com/openai/v1")
+    sqlite_db.set_config("api_key", "sk-secret-token")
+    sqlite_db.set_config("model_name", "llama-3.3-70b-versatile")
+
+    assert sqlite_db.get_config("base_url") == "https://api.groq.com/openai/v1"
+    assert sqlite_db.get_config("api_key") == "sk-secret-token"
+    assert sqlite_db.get_config("model_name") == "llama-3.3-70b-versatile"
+    assert sqlite_db.get_config("nonexistent", "fallback") == "fallback"
+
+    all_cfg = sqlite_db.get_all_config()
+    assert all_cfg["base_url"] == "https://api.groq.com/openai/v1"
+    assert all_cfg["api_key"] == "sk-secret-token"
+
+    # Upsert test
+    sqlite_db.set_config("api_key", "sk-updated-token")
+    assert sqlite_db.get_config("api_key") == "sk-updated-token"
+
+    # Delete test
+    sqlite_db.delete_config("api_key")
+    assert sqlite_db.get_config("api_key") is None
+
+def test_sqlite_artifacts_storage(sqlite_db):
+    art_id1 = sqlite_db.record_artifact("sess_1", "output/result.parquet", 1048576, 50000)
+    assert art_id1 > 0
+    art_id2 = sqlite_db.record_artifact("sess_2", "output/summary.parquet", 2048, 10)
+    assert art_id2 > art_id1
+
+    all_arts = sqlite_db.list_artifacts()
+    assert len(all_arts) == 2
+    assert all_arts[0]["artifact_path"] == "output/summary.parquet"
+    assert all_arts[1]["artifact_path"] == "output/result.parquet"
+
+    sess1_arts = sqlite_db.list_artifacts(session_id="sess_1")
+    assert len(sess1_arts) == 1
+    assert sess1_arts[0]["artifact_path"] == "output/result.parquet"
+    assert sess1_arts[0]["file_size_bytes"] == 1048576
+    assert sess1_arts[0]["row_count"] == 50000

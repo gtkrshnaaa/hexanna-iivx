@@ -56,8 +56,24 @@ class SQLiteChatHistory(IChatHistoryRepository):
                 created_at REAL NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS config (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at REAL NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                artifact_path TEXT NOT NULL,
+                file_size_bytes INTEGER,
+                row_count INTEGER,
+                created_at REAL NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
             CREATE INDEX IF NOT EXISTS idx_commands_created_at ON commands(created_at);
+            CREATE INDEX IF NOT EXISTS idx_artifacts_session ON artifacts(session_id);
         """)
         self._conn.commit()
 
@@ -234,11 +250,96 @@ class SQLiteChatHistory(IChatHistoryRepository):
             for r in rows
         ]
 
+    def set_config(self, key: str, value: str) -> None:
+        now = time.time()
+        with self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO config (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = excluded.updated_at
+                """,
+                (key, value, now)
+            )
+
+    def get_config(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        cursor = self._conn.cursor()
+        row = cursor.execute("SELECT value FROM config WHERE key = ?", (key,)).fetchone()
+        if row:
+            return row["value"]
+        return default
+
+    def get_all_config(self) -> Dict[str, str]:
+        cursor = self._conn.cursor()
+        rows = cursor.execute("SELECT key, value FROM config").fetchall()
+        return {r["key"]: r["value"] for r in rows}
+
+    def delete_config(self, key: str) -> None:
+        with self._conn:
+            self._conn.execute("DELETE FROM config WHERE key = ?", (key,))
+
+    def record_artifact(
+        self,
+        session_id: str,
+        artifact_path: str,
+        file_size_bytes: Optional[int] = None,
+        row_count: Optional[int] = None
+    ) -> int:
+        now = time.time()
+        with self._conn:
+            cursor = self._conn.execute(
+                """
+                INSERT INTO artifacts (session_id, artifact_path, file_size_bytes, row_count, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (session_id, artifact_path, file_size_bytes, row_count, now)
+            )
+            return cursor.lastrowid
+
+    def list_artifacts(self, session_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        cursor = self._conn.cursor()
+        if session_id:
+            rows = cursor.execute(
+                """
+                SELECT id, session_id, artifact_path, file_size_bytes, row_count, created_at
+                FROM artifacts
+                WHERE session_id = ?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (session_id, limit)
+            ).fetchall()
+        else:
+            rows = cursor.execute(
+                """
+                SELECT id, session_id, artifact_path, file_size_bytes, row_count, created_at
+                FROM artifacts
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,)
+            ).fetchall()
+
+        return [
+            {
+                "id": r["id"],
+                "session_id": r["session_id"],
+                "artifact_path": r["artifact_path"],
+                "file_size_bytes": r["file_size_bytes"],
+                "row_count": r["row_count"],
+                "created_at": r["created_at"]
+            }
+            for r in rows
+        ]
+
     def clear_history(self) -> None:
         with self._conn:
             self._conn.execute("DELETE FROM messages;")
             self._conn.execute("DELETE FROM commands;")
             self._conn.execute("DELETE FROM sessions;")
+            self._conn.execute("DELETE FROM artifacts;")
         self._conn.execute("VACUUM;")
 
     def close(self) -> None:

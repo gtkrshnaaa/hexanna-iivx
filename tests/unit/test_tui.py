@@ -36,6 +36,7 @@ def test_repl_banner_and_help():
     assert "/inspect" in help_output
     assert "/sql" in help_output
     assert "/run" in help_output
+    assert "/artifacts" in help_output
 
 def test_repl_cmd_inspect(sample_parquet):
     repl = HexannaREPL()
@@ -171,4 +172,71 @@ def test_repl_sqlite_history_commands(tmp_path):
     clear_out = string_io.getvalue()
     assert "purged" in clear_out
     assert len(repl.history_db.list_sessions()) == 0
+    repl.history_db.close()
+
+def test_repl_sqlite_config_persistence(tmp_path):
+    db_file = str(tmp_path / "config_test.db")
+    repl1 = HexannaREPL(db_path=db_file)
+    string_io = StringIO()
+    repl1.console = Console(file=string_io, no_color=True, width=120)
+
+    secret_url = "https://custom-private-llm.corp.net/v1"
+    secret_key = "sk-corp-super-secret-key-12345"
+
+    repl1.cmd_config(f"base_url {secret_url}")
+    repl1.cmd_config(f"api_key {secret_key}")
+    repl1.cmd_config("model custom-llama-model")
+    repl1.cmd_config("memory 6GB")
+
+    # Verify censorship in output
+    out = string_io.getvalue()
+    assert secret_url not in out
+    assert secret_key not in out
+    assert "****** (censored)" in out
+
+    # Verify saved in SQLite
+    assert repl1.history_db.get_config("base_url") == secret_url
+    assert repl1.history_db.get_config("api_key") == secret_key
+    assert repl1.history_db.get_config("model_name") == "custom-llama-model"
+    assert repl1.history_db.get_config("memory_limit") == "6GB"
+    repl1.history_db.close()
+
+    # Re-initialize new REPL instance without args, pointing to same SQLite DB
+    repl2 = HexannaREPL(db_path=db_file)
+    assert repl2.base_url == secret_url
+    assert repl2.api_key == secret_key
+    assert repl2.model_name == "custom-llama-model"
+    assert repl2.memory_limit == "6GB"
+
+    # Test deleting a key
+    string_io2 = StringIO()
+    repl2.console = Console(file=string_io2, no_color=True, width=120)
+    repl2.cmd_config("delete api_key")
+    del_out = string_io2.getvalue()
+    assert "Removed configuration key 'api_key'" in del_out
+    assert repl2.history_db.get_config("api_key") is None
+    repl2.history_db.close()
+
+def test_repl_artifacts_recording(tmp_path, sample_parquet):
+    db_file = str(tmp_path / "artifacts_test.db")
+    repl = HexannaREPL(db_path=db_file)
+    string_io = StringIO()
+    repl.console = Console(file=string_io, no_color=True, width=160)
+
+    out_file = str(tmp_path / "saved_records.parquet")
+    repl.cmd_sql(f"SELECT * FROM '{sample_parquet}' WHERE id < 30 -> {out_file}")
+
+    # Verify recorded in SQLite
+    artifacts = repl.history_db.list_artifacts()
+    assert len(artifacts) == 1
+    assert artifacts[0]["artifact_path"] == out_file
+    assert artifacts[0]["row_count"] == 30
+
+    # Verify /artifacts command outputs the table
+    string_io.truncate(0)
+    string_io.seek(0)
+    repl.cmd_artifacts("10")
+    art_out = string_io.getvalue()
+    assert "Persisted Artifacts in SQLite" in art_out
+    assert "saved_records.parquet" in art_out
     repl.history_db.close()

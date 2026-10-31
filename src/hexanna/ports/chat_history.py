@@ -60,6 +60,42 @@ class IChatHistoryRepository(ABC):
         pass
 
     @abstractmethod
+    def set_config(self, key: str, value: str) -> None:
+        """Persist a configuration key-value pair in SQLite."""
+        pass
+
+    @abstractmethod
+    def get_config(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Fetch a persistent configuration value from SQLite."""
+        pass
+
+    @abstractmethod
+    def get_all_config(self) -> Dict[str, str]:
+        """Retrieve all persistent configuration key-value pairs from SQLite."""
+        pass
+
+    @abstractmethod
+    def delete_config(self, key: str) -> None:
+        """Remove a configuration key from SQLite."""
+        pass
+
+    @abstractmethod
+    def record_artifact(
+        self,
+        session_id: str,
+        artifact_path: str,
+        file_size_bytes: Optional[int] = None,
+        row_count: Optional[int] = None
+    ) -> int:
+        """Record an out-of-core dataset artifact created by the system."""
+        pass
+
+    @abstractmethod
+    def list_artifacts(self, session_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        """List generated artifacts stored in SQLite."""
+        pass
+
+    @abstractmethod
     def close(self) -> None:
         """Close storage resources."""
         pass

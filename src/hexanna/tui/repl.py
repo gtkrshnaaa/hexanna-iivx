@@ -37,6 +37,7 @@ class HexannaCompleter:
         "/history",
         "/history-chat",
         "/clear-history",
+        "/artifacts",
         "/memory",
         "/stats",
         "/config",
@@ -75,22 +76,23 @@ class HexannaREPL:
 
     def __init__(
         self,
-        memory_limit: str = "2GB",
-        model_name: str = "llama-3.3-70b-versatile",
+        memory_limit: Optional[str] = None,
+        model_name: Optional[str] = None,
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
         db_path: Optional[str] = None
     ):
         self.console = Console()
-        self.memory_limit = memory_limit
-        self.model_name = model_name
-        self.base_url = base_url or os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
-        self.api_key = api_key or os.getenv("LLM_API_KEY", "")
+        self.history_db = SQLiteChatHistory(db_path=db_path) if db_path else SQLiteChatHistory()
+        saved_config = self.history_db.get_all_config()
+
+        self.memory_limit = memory_limit or saved_config.get("memory_limit") or "2GB"
+        self.model_name = model_name or saved_config.get("model_name") or saved_config.get("model") or "llama-3.3-70b-versatile"
+        self.base_url = base_url or saved_config.get("base_url") or os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
+        self.api_key = api_key or saved_config.get("api_key") or os.getenv("LLM_API_KEY", "")
         self.engine = DuckDBAdapter(memory_limit=self.memory_limit)
         self.telemetry = PsutilTracker()
 
-        # Storage
-        self.history_db = SQLiteChatHistory(db_path=db_path) if db_path else SQLiteChatHistory()
         self.session_id = f"session_{int(time.time())}"
         self.history_db.create_session(self.session_id, f"Interactive Session {self.session_id}")
 
@@ -157,8 +159,9 @@ class HexannaREPL:
         table.add_row("/history", "[limit]", "Display recent command history from SQLite database")
         table.add_row("/history-chat", "[session_id]", "Display message turns for a chat session from SQLite")
         table.add_row("/clear-history", "", "Purge all historical chat sessions and commands in SQLite")
+        table.add_row("/artifacts", "[limit]", "List generated out-of-core dataset artifacts in SQLite")
         table.add_row("/memory", "", "Display process memory metrics and DuckDB disk spill stats")
-        table.add_row("/config", "[key] [value]", "View or update model, memory limit, or base URL")
+        table.add_row("/config", "[key] [value]", "View or update model, memory limit, or base URL in SQLite")
         table.add_row("/clear", "", "Clear terminal screen and reprint banner")
         table.add_row("/exit", "", "Exit REPL session cleanly")
         self.console.print(table)
@@ -239,6 +242,12 @@ class HexannaREPL:
             with self.console.status(f"[cyan]Streaming out-of-core transformation to {out_path}...[/cyan]"):
                 try:
                     res = self.tool_sql.execute(query=sql_query, output_path=out_path)
+                    self.history_db.record_artifact(
+                        session_id=self.session_id,
+                        artifact_path=res["destination"],
+                        file_size_bytes=res.get("output_size_bytes"),
+                        row_count=res.get("rows_written")
+                    )
                     self.console.print(
                         f"[green][OK][/green] Persisted {res['rows_written']:,} rows to [cyan]{res['destination']}[/cyan] ({res['output_size_bytes'] / (1024*1024):.2f} MB)"
                     )
@@ -332,6 +341,13 @@ class HexannaREPL:
         status_text = "[green]SUCCESS[/green]" if state.completed else "[yellow]INCOMPLETE[/yellow]"
         self.console.print(f"[*] Task status: {status_text} | Total iterations: {state.iteration}")
         if state.artifacts_created:
+            for art in state.artifacts_created:
+                fsize = os.path.getsize(art) if os.path.exists(art) else None
+                self.history_db.record_artifact(
+                    session_id=self.session_id,
+                    artifact_path=art,
+                    file_size_bytes=fsize
+                )
             self.console.print(f"[*] Generated artifacts: [cyan]{', '.join(state.artifacts_created)}[/cyan]")
         self.console.print(Rule(style="bright_black"))
 
@@ -418,6 +434,27 @@ class HexannaREPL:
         table.add_row("Temp Spill Footprint", f"{temp_size_mb:.2f} MB")
         self.console.print(table)
 
+    def cmd_artifacts(self, args: str):
+        limit = int(args.strip()) if args.strip().isdigit() else 20
+        artifacts = self.history_db.list_artifacts(limit=limit)
+        if not artifacts:
+            self.console.print("[bright_black]No recorded artifacts in SQLite storage.[/bright_black]")
+            return
+
+        table = Table(title=f"Persisted Artifacts in SQLite (Last {len(artifacts)})", border_style="bright_black", show_lines=True)
+        table.add_column("#", style="bright_black", width=4)
+        table.add_column("Created", style="bright_black", width=19)
+        table.add_column("Path", style="bold cyan", overflow="fold")
+        table.add_column("Rows", style="white", justify="right")
+        table.add_column("Size", style="white", justify="right")
+
+        for art in artifacts:
+            time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(art["created_at"]))
+            rows_str = f"{art['row_count']:,}" if art["row_count"] is not None else "-"
+            size_str = f"{art['file_size_bytes'] / (1024 * 1024):.2f} MB" if art["file_size_bytes"] is not None else "-"
+            table.add_row(str(art["id"]), time_str, art["artifact_path"], rows_str, size_str)
+        self.console.print(table)
+
     def cmd_config(self, args: str):
         parts = args.strip().split(maxsplit=1)
         if not parts or not parts[0]:
@@ -429,8 +466,9 @@ class HexannaREPL:
             table.add_row("API Key", self._censor_secret(self.api_key))
             table.add_row("Memory Limit", self.memory_limit)
             table.add_row("Temp Directory", self.engine.temp_directory)
+            table.add_row("SQLite Storage", self.history_db.db_path)
             self.console.print(table)
-            self.console.print("[bright_black]Usage to update: /config <model|base_url|api_key|memory_limit> [value][/bright_black]")
+            self.console.print("[bright_black]Usage to update: /config <model|base_url|api_key|memory_limit|delete> [value][/bright_black]")
             return
 
         key = parts[0].lower()
@@ -448,7 +486,8 @@ class HexannaREPL:
                 self.console.print("[red][ERROR][/red] Base URL cannot be empty.")
                 return
             self.base_url = val
-            self.console.print("[green][OK][/green] Base URL set to: [bright_black]****** (censored)[/bright_black]")
+            self.history_db.set_config("base_url", val)
+            self.console.print("[green][OK][/green] Base URL set and saved to SQLite: [bright_black]****** (censored)[/bright_black]")
 
         elif key in ("api_key", "key"):
             if not val:
@@ -462,14 +501,16 @@ class HexannaREPL:
                 self.console.print("[red][ERROR][/red] API key cannot be empty.")
                 return
             self.api_key = val
-            self.console.print("[green][OK][/green] API Key set to: [bright_black]****** (censored)[/bright_black]")
+            self.history_db.set_config("api_key", val)
+            self.console.print("[green][OK][/green] API Key set and saved to SQLite: [bright_black]****** (censored)[/bright_black]")
 
         elif key in ("model", "model_name"):
             if not val:
                 self.console.print("[red][ERROR][/red] Value required for model")
                 return
             self.model_name = val
-            self.console.print(f"[green][OK][/green] Model set to: [cyan]{self.model_name}[/cyan]")
+            self.history_db.set_config("model_name", val)
+            self.console.print(f"[green][OK][/green] Model set and saved to SQLite: [cyan]{self.model_name}[/cyan]")
 
         elif key in ("memory", "memory_limit", "max_memory"):
             if not val:
@@ -478,10 +519,18 @@ class HexannaREPL:
             self.memory_limit = val
             self.engine.memory_limit = val
             self.engine._conn.execute(f"SET max_memory = '{self.memory_limit}';")
-            self.console.print(f"[green][OK][/green] Engine memory limit set to: [cyan]{self.memory_limit}[/cyan]")
+            self.history_db.set_config("memory_limit", val)
+            self.console.print(f"[green][OK][/green] Engine memory limit set and saved to SQLite: [cyan]{self.memory_limit}[/cyan]")
+
+        elif key in ("delete", "remove", "unset"):
+            if not val:
+                self.console.print("[red][ERROR][/red] Key name required to delete from SQLite config")
+                return
+            self.history_db.delete_config(val)
+            self.console.print(f"[green][OK][/green] Removed configuration key '{val}' from SQLite.")
 
         else:
-            self.console.print(f"[red][ERROR][/red] Unknown config setting '{key}'. Valid options: model, base_url, api_key, memory_limit")
+            self.console.print(f"[red][ERROR][/red] Unknown config setting '{key}'. Valid options: model, base_url, api_key, memory_limit, delete")
 
     def run(self):
         """Main REPL loop."""
@@ -527,6 +576,8 @@ class HexannaREPL:
                 self.cmd_history(user_input[len("/history"):])
             elif lower == "/clear-history":
                 self.cmd_clear_history()
+            elif lower.startswith("/artifacts"):
+                self.cmd_artifacts(user_input[len("/artifacts"):])
             elif lower.startswith("/inspect"):
                 self.cmd_inspect(user_input[len("/inspect"):])
             elif lower.startswith("/profile"):
