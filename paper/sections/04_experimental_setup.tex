@@ -20,7 +20,7 @@ Workloads are derived from the industry-standard Transaction Processing Performa
     \item \textbf{SF-5:} 5~GB raw relational data ($\approx 3.0 \times 10^7$ \texttt{lineitem} records).
     \item \textbf{SF-10:} 10~GB raw relational data ($\approx 6.0 \times 10^7$ \texttt{lineitem} records).
 \end{itemize}
-All tables are serialized in columnar Apache Parquet format \cite{arrow2024} using Zstandard (ZSTD) compression, matching modern cloud-native edge storage practices.
+All tables are serialized in columnar Apache Parquet format \cite{parquet2024} using Zstandard (ZSTD) compression, matching modern cloud-native edge storage practices.
 
 \subsection{Granular Query Profiles}
 To evaluate behavior across diverse relational operators, we categorize workloads into three distinct analytical query profiles:
