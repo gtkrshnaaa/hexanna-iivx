@@ -151,9 +151,9 @@ This research is accepted for publication in the **Journal of Systems and Softwa
 If you use Hexanna IIVX or its benchmark harnesses in your scientific work, please cite:
 
 ```bibtex
-@article{gtkrshnaaa2026hexanna,
+@article{krishna2026hexanna,
   title={Hexanna IIVX: A Deterministic, Metadata-Driven Agent Harness for Out-of-Core Local Data Engineering},
-  author={gtkrshnaaa},
+  author={I Putu Gede Gilang Teja Krishna},
   journal={Journal of Systems and Software},
   publisher={Elsevier},
   year={2026},
