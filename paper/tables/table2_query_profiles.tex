@@ -9,14 +9,14 @@
 \textbf{Profile A: Scan/Agg}  & Hexanna IIVX (Ours) & 524.0  & 32.10 & 840.6  & Success (100\%) \\
 (TPC-H Q6, 60M rows)          & Raw DuckDB          & 452.0  & 29.80 & 840.6  & Success (100\%) \\
                               & Polars Streaming    & 2420.0 & 27.50 & 0.0    & Success (100\%) \\
-                              & Pandas (In-Memory)  & 16384.0& ---   & 0.0    & OOM Panic       \\ \midrule
+                              & Pandas (In-Memory)  & 16384.0& N/A   & 0.0    & OOM Panic       \\ \midrule
 \textbf{Profile B: Multi-Join}& Hexanna IIVX (Ours) & 568.5  & 41.50 & 1420.8 & Success (100\%) \\
 (TPC-H Q5, 5-table merge)     & Raw DuckDB          & 498.4  & 38.90 & 1420.8 & Success (100\%) \\
                               & Polars Streaming    & 2980.0 & 35.10 & 0.0    & Success (100\%) \\
-                              & Pandas (In-Memory)  & 16384.0& ---   & 0.0    & OOM Panic       \\ \midrule
+                              & Pandas (In-Memory)  & 16384.0& N/A   & 0.0    & OOM Panic       \\ \midrule
 \textbf{Profile C: Subquery}  & Hexanna IIVX (Ours) & 542.1  & 36.80 & 1150.2 & Success (100\%) \\
 (TPC-H Q17, Correlated subq)  & Raw DuckDB          & 476.0  & 34.20 & 1150.2 & Success (100\%) \\
                               & Polars Streaming    & 2710.0 & 31.40 & 0.0    & Success (100\%) \\
-                              & Pandas (In-Memory)  & 16384.0& ---   & 0.0    & OOM Panic       \\ \bottomrule
+                              & Pandas (In-Memory)  & 16384.0& N/A   & 0.0    & OOM Panic       \\ \bottomrule
 \end{tabular}
 \end{table*}

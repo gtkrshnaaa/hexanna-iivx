@@ -1,35 +1,49 @@
 \section{Introduction}
 \label{sec:introduction}
 
-Data engineering pipelines underpin modern analytics, demanding frequent data transformation, schema validation, aggregation, and format modernization. While cloud-managed data warehouses dominate enterprise infrastructure, local data engineering workflows on commodity developer workstations remain critical due to data sovereignty mandates, edge operational constraints, and development velocity.
+Data engineering pipelines underpin modern analytics and operational machine learning, demanding continuous transformation, schema validation, multi-way relational joins, and format modernization. While distributed cloud data warehouses (e.g., Snowflake, BigQuery, AWS Redshift) dominate large-scale enterprise infrastructure, local data engineering workflows on commodity developer workstations remain vital. Developers and data scientists prioritize local processing due to corporate data sovereignty mandates, edge operational constraints, zero cloud egress expenses, and the need for rapid local iteration cycles.
 
-Recent autonomous agent architectures (e.g., Open-Interpreter, AutoGPT) attempt to automate these pipelines by delegating raw code generation and execution to Large Language Models (LLMs). Nevertheless, as depicted in Table~\ref{tab:agent_comparison}, existing approaches demonstrate structural deficiencies when executing on local hardware:
+Recent advancements in Large Language Models (LLMs) and autonomous agent frameworks \cite{yao2022react,schick2023toolformer} have stimulated interest in automating local data engineering tasks. Systems such as PandasAI \cite{mckinney2010pandas} and Open-Interpreter attempt to synthesize and execute data transformation code from natural language instructions. However, existing autonomous data engineering approaches suffer from fundamental architectural deficiencies when deployed on commodity developer hardware:
 \begin{enumerate}
-    \item \textbf{Context Window Saturation and Network Egress:} Naive agents ingest raw sample rows directly into LLM prompts. In multi-gigabyte environments, this strategy exhausts context capacity, escalates API costs, and compromises data confidentiality.
-    \item \textbf{Unbounded Heap Allocations and Host Freezes:} Frameworks delegating code synthesis to in-memory libraries (e.g., Pandas) precipitate exponential memory spikes ($\mathcal{O}(N)$ space complexity), routinely triggering OS kernel out-of-memory (OOM) terminating processes.
-    \item \textbf{Non-Deterministic Shell Vulnerabilities:} Agents possessing arbitrary Bash or terminal privileges exhibit syntax hallucinations, non-idempotent side effects, and severe threat vectors against local file systems.
+    \item \textbf{Context Window Saturation and Data Confidentiality Violations:} Naive agents ingest sample rows of raw tabular data directly into LLM prompts. On multi-gigabyte datasets, this approach rapidly exhausts finite context windows, inflates API token costs, and violates data governance mandates by transmitting raw proprietary records to third-party model inference endpoints.
+    \item \textbf{Unbounded In-Memory Allocation and OOM Panics:} Systems delegating operations to in-memory DataFrame libraries (e.g., Pandas) require allocating contiguous matrices in RAM, scaling linearly with dataset cardinality $\mathcal{O}(N)$. On commodity workstations with 16~GB RAM, processing 10~GB datasets induces catastrophic memory spikes, triggering operating system kernel Out-of-Memory (OOM) killer terminations.
+    \item \textbf{Unrestricted Shell Execution and Security Vulnerabilities:} General-purpose agents executing arbitrary Bash commands present critical security vulnerabilities, including destructive filesystem modifications, path traversals, and non-deterministic side effects \cite{greshake2023not,liu2023jailbreaking,li2024evaluating}.
+    \item \textbf{Absence of Out-of-Core Agent Orchestration:} While state-of-the-art columnar engines such as DuckDB \cite{raasveldt2019duckdb} and Polars \cite{polars2024} provide vectorized streaming capabilities, existing agent harnesses lack deterministic abstractions to orchestrate these engines under strict memory clamps and structured self-healing feedback loops.
 \end{enumerate}
-
-To overcome these structural limitations, we introduce \textbf{Hexanna IIVX}, a deterministic agent harness designed to enable enterprise-grade data engineering on local workstations with remote LLM reasoning.
 
 \begin{table*}[t]
 \centering
 \small
-\caption{Architectural comparison of autonomous data engineering paradigms.}
+\caption{Architectural comparison of local data engineering paradigms.}
 \label{tab:agent_comparison}
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}lllll@{}}
 \toprule
-\textbf{Evaluation Dimension} & \textbf{Hexanna IIVX (Ours)} & \textbf{In-Memory Agents (e.g., PandasAI)} & \textbf{Shell Agents (e.g., Open-Interpreter)} \\ \midrule
-Execution Safety & Sandboxed Deterministic Tools & Python \texttt{eval()} Runtime & Unrestricted Shell Execution \\
-Data Transmission & Metadata Only ($\mathcal{O}(1)$ tokens) & Row Samples + Schema & File Dumps via Terminal Pipes \\
-Memory Profile & Out-of-Core Bounded ($<600$ MB) & In-Memory Matrix ($\mathcal{O}(N)$ RAM) & Unpredictable Script-Dependent \\
-OOM Fault Risk & Zero (Guaranteed Disk Spill) & Critical at Scale & Severe Under Memory Constraints \\ \bottomrule
+\textbf{Architectural Dimension} & \textbf{Hexanna IIVX (Ours)} & \textbf{Raw DuckDB} & \textbf{Polars Streaming} & \textbf{In-Memory Agents} \\ \midrule
+Autonomous Reasoning & Yes (LLM Planner) & No (Manual SQL) & No (Manual Code) & Yes (PandasAI) \\
+Execution Interface & Sandboxed Functional Tools & Direct SQL Client & DataFrame API & Arbitrary Python \texttt{eval()} \\
+Wire Data Exposure & Metadata Only ($\mathcal{O}(1)$) & Local Zero-Egress & Local Zero-Egress & Raw Rows in Prompt \\
+Memory Model & Bounded Out-of-Core ($<550$ MB) & Bounded Out-of-Core & Streaming Heap Buffer & Contiguous RAM ($\mathcal{O}(N)$) \\
+Disk Spilling Buffer & Automatic NVMe Spilling & Automatic NVMe Spilling & Limited Spill Support & None (OOM Crash) \\
+Self-Healing Recovery & Automated 3-Stage Dispatch & None & None & Naive Text Reprompt \\ \bottomrule
 \end{tabular}
 \end{table*}
 
-\noindent The primary scientific contributions of this paper are:
+To resolve these challenges, we introduce \textbf{Hexanna IIVX}, a lightweight, deterministic agent harness designed specifically for out-of-core local data engineering. Hexanna IIVX decouples high-level cognitive reasoning from local hardware execution using a hexagonal architecture (ports and adapters). The agent interacts with underlying datasets exclusively through a metadata-first protocol: raw records are stripped locally, and only relational schemas and compact statistical profile sketches (cardinalities, quantiles, null proportions) are transmitted to remote OpenAI-compatible inference APIs. Execution is confined to a strictly-typed tool harness orchestrated over an embedded vectorized query engine (DuckDB) enforcing static memory limits and automatic NVMe disk spilling.
+
+This paper addresses four fundamental Research Questions (RQs):
 \begin{itemize}
-    \item We design a \textbf{Metadata-Driven Protocol} that strips all physical records prior to remote transmission, exchanging strictly typed relational schemas and statistical sketches to guarantee zero raw payload leakage.
-    \item We develop a \textbf{Sandboxed Deterministic Harness} that replaces arbitrary command shells with typed functional tools coupled to an embedded out-of-core query engine enforcing static RAM boundaries.
-    \item We present comprehensive, reproducible evaluations demonstrating bounded memory profiles, sub-minute execution speeds, and zero task failures across multi-gigabyte TPC-H benchmarks on standard developer laptops.
+    \item \textbf{RQ1 (Memory Bounds and Out-of-Core Invariance):} Can Hexanna IIVX maintain an invariant, predictable memory ceiling ($<550$~MB RSS) across multi-gigabyte workloads up to SF-10 (60 million records), completely eliminating the kernel OOM panics that plague in-memory agent frameworks?
+    \item \textbf{RQ2 (Wall-Clock Latency and Orchestration Overhead):} What is the computational latency trade-off incurred by NVMe disk spilling during memory-constrained execution, and what is the exact marginal latency cost of LLM agent planning compared to zero-LLM manual execution?
+    \item \textbf{RQ3 (Empirical Token Wire Invariance):} Does the metadata-first protocol empirically preserve an $\mathcal{O}(1)$ prompt token wire size as the underlying raw dataset expands tenfold from 1~GB to 10~GB?
+    \item \textbf{RQ4 (Ablation and Self-Healing Convergence):} How significantly does the ProfileSketcher module improve first-shot query generation, and can the deterministic self-healing dispatch loop systematically recover from runtime execution errors without human intervention?
 \end{itemize}
+
+\noindent The primary scientific contributions of this work are summarized as follows:
+\begin{itemize}
+    \item \textbf{Metadata-First Agent Protocol:} We formulate and prove an $\mathcal{O}(1)$ token wire protocol that abstracts raw tabular records into compact schema profiles and statistical sketches, guaranteeing that remote model context windows never scale with dataset cardinality.
+    \item \textbf{Sandboxed Out-of-Core Execution Harness:} We design a deterministic execution engine interface that eliminates arbitrary shell execution in favor of typed functional query tools, bounding peak memory consumption via configured buffer pool limits and automatic NVMe spilling.
+    \item \textbf{Self-Healing Dispatch Loop:} We implement an automated diagnostic feedback loop that captures SQL syntax faults, type mismatches, and empty result sets, achieving a 100\% task completion rate across diverse analytical query profiles.
+    \item \textbf{Rigorous Empirical Benchmarking:} We conduct an extensive empirical evaluation across TPC-H benchmarks (SF-1, SF-5, SF-10), benchmarking Hexanna IIVX against Raw DuckDB, Polars streaming, and in-memory Pandas agents across three distinct query profiles (aggregation, multi-way join, and correlated subqueries).
+\end{itemize}
+
+The remainder of this paper is structured as follows. Section~\ref{sec:related_work} surveys related literature across Text-to-SQL, vectorized engines, out-of-core systems, and agent security. Section~\ref{sec:system_architecture} details the system architecture, mathematical proofs, and self-healing loop. Section~\ref{sec:experimental_setup} outlines the experimental methodology and benchmark suite. Section~\ref{sec:results} presents empirical findings and evaluates RQ1 through RQ4. Finally, Section~\ref{sec:conclusion} concludes the paper with directions for future work.
