@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+cd "$REPO_DIR"
+
 echo "=========================================================="
 echo "Hexanna IIVX: Test Suite Runner"
 echo "=========================================================="
@@ -13,7 +16,7 @@ elif command -v docker >/dev/null 2>&1; then
         --memory="2g" \
         --cpus="2" \
         -e PYTHONDONTWRITEBYTECODE=1 \
-        -v "$PWD":/app \
+        -v "$REPO_DIR":/app \
         -w /app \
         python:3.11-slim \
         bash -c "pip install --no-cache-dir -e '.[all]' && pytest tests/"

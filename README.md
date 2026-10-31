@@ -43,14 +43,14 @@ hexanna-iivx/
 Run the universal installer to build and register the `hexanna` command in your OS PATH, enabling execution from any directory:
 
 ```bash
-./install.sh
+./scripts/sh/install.sh
 ```
 
 Installer options:
-- `./install.sh`: Automatically detects privileges and installs to `~/.local/bin/hexanna` (or `/usr/local/bin/hexanna` if root).
-- `./install.sh --user`: Force install to user directory (`~/.local/bin/hexanna`).
-- `sudo ./install.sh --system`: Force install to system binary directory (`/usr/local/bin/hexanna`).
-- `./install.sh --uninstall`: Remove the installed launcher.
+- `./scripts/sh/install.sh`: Automatically detects privileges and installs to `~/.local/bin/hexanna` (or `/usr/local/bin/hexanna` if root).
+- `./scripts/sh/install.sh --user`: Force install to user directory (`~/.local/bin/hexanna`).
+- `sudo ./scripts/sh/install.sh --system`: Force install to system binary directory (`/usr/local/bin/hexanna`).
+- `./scripts/sh/install.sh --uninstall`: Remove the installed launcher.
 
 For local Python virtual environment development:
 
@@ -128,6 +128,14 @@ Run an autonomous goal:
 export LLM_API_KEY="your-api-key"
 export LLM_BASE_URL="https://api.groq.com/openai/v1"
 hexanna run "Aggregate all lineitems grouped by return flag and save to output/flag_summary.parquet"
+```
+
+## Running Tests
+
+Execute the automated test suite inside an isolated container or native pytest:
+
+```bash
+./tests/scripts/sh/test.sh
 ```
 
 ## Running Benchmarks

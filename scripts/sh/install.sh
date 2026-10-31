@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TARGET_MODE="auto"
 
 for arg in "$@"; do
@@ -22,7 +22,7 @@ for arg in "$@"; do
             TARGET_MODE="uninstall"
             ;;
         -h|--help)
-            echo "Usage: ./install.sh [OPTIONS]"
+            echo "Usage: ./scripts/sh/install.sh [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --user       Install to user binary directory (~/.local/bin) [default for non-root]"
@@ -33,7 +33,7 @@ for arg in "$@"; do
             ;;
         *)
             echo "Unknown option: $arg"
-            echo "Run './install.sh --help' for usage."
+            echo "Run './scripts/sh/install.sh --help' for usage."
             exit 1
             ;;
     esac
