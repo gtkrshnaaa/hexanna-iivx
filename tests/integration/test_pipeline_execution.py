@@ -2,9 +2,7 @@ import os
 from hexanna.harness.runtime import HexannaRuntime
 from hexanna.tools.schema_inspector import SchemaInspectorTool
 from hexanna.tools.out_of_core_sql import OutOfCoreSQLTool
-from tests.conftest import MockLLMGateway
-
-def test_full_pipeline_execution(sample_parquet, duckdb_engine, tmp_path):
+def test_full_pipeline_execution(sample_parquet, duckdb_engine, mock_llm_gateway_factory, tmp_path):
     output_target = str(tmp_path / "final_summary.parquet")
     tools = [
         SchemaInspectorTool(duckdb_engine),
@@ -47,7 +45,7 @@ def test_full_pipeline_execution(sample_parquet, duckdb_engine, tmp_path):
         }
     ]
 
-    gateway = MockLLMGateway(responses=mock_responses)
+    gateway = mock_llm_gateway_factory(responses=mock_responses)
     runtime = HexannaRuntime(llm_gateway=gateway, tools=tools)
 
     state = runtime.run("Aggregate usernames and write to parquet.", max_iterations=5)

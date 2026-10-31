@@ -27,6 +27,12 @@ def mock_llm_gateway():
     return MockLLMGateway()
 
 @pytest.fixture
+def mock_llm_gateway_factory():
+    def _create(responses=None):
+        return MockLLMGateway(responses=responses)
+    return _create
+
+@pytest.fixture
 def duckdb_engine():
     adapter = DuckDBAdapter(memory_limit="512MB")
     yield adapter
