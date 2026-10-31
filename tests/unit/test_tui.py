@@ -134,3 +134,41 @@ def test_repl_credentials_censored():
     assert secret_url not in sanitized
     assert secret_key not in sanitized
     assert "****** (censored)" in sanitized
+
+def test_repl_sqlite_history_commands(tmp_path):
+    db_file = str(tmp_path / "repl_test.db")
+    repl = HexannaREPL(db_path=db_file)
+    string_io = StringIO()
+    repl.console = Console(file=string_io, no_color=True, width=120)
+
+    # Record command in SQLite
+    repl.history_db.add_command("/inspect data.parquet", session_id=repl.session_id)
+    repl.cmd_history("10")
+    out = string_io.getvalue()
+    assert "SQLite Command History" in out
+    assert "/inspect data.parquet" in out
+
+    # Check sessions table
+    string_io.truncate(0)
+    string_io.seek(0)
+    repl.cmd_sessions("10")
+    sess_out = string_io.getvalue()
+    assert "SQLite Chat Sessions" in sess_out
+    assert repl.session_id in sess_out
+
+    # Add message and check history-chat
+    repl.history_db.add_message(repl.session_id, role="user", content="Test prompt in chat")
+    string_io.truncate(0)
+    string_io.seek(0)
+    repl.cmd_history_chat(repl.session_id)
+    chat_out = string_io.getvalue()
+    assert "Test prompt in chat" in chat_out
+
+    # Clear history
+    string_io.truncate(0)
+    string_io.seek(0)
+    repl.cmd_clear_history()
+    clear_out = string_io.getvalue()
+    assert "purged" in clear_out
+    assert len(repl.history_db.list_sessions()) == 0
+    repl.history_db.close()

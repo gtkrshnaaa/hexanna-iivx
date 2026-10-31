@@ -33,3 +33,21 @@ class ExecutionState:
     history: List[Dict[str, Any]] = field(default_factory=list)
     completed: bool = False
     artifacts_created: List[str] = field(default_factory=list)
+
+@dataclass
+class ChatMessage:
+    role: str
+    content: Optional[str] = None
+    tool_call_id: Optional[str] = None
+    tool_name: Optional[str] = None
+    tool_arguments: Optional[Dict[str, Any]] = None
+    tool_result: Optional[Dict[str, Any]] = None
+    timestamp: float = 0.0
+
+@dataclass
+class ChatSession:
+    session_id: str
+    title: str
+    created_at: float
+    updated_at: float
+    message_count: int = 0

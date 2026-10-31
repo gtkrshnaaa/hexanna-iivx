@@ -1,23 +1,40 @@
 import time
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from hexanna.ports.llm_gateway import ILLMGateway
+from hexanna.ports.chat_history import IChatHistoryRepository
 from hexanna.tools.base import BaseTool
 from hexanna.harness.context_builder import MetadataContextBuilder
 from hexanna.harness.dispatcher import ToolDispatcher
 from hexanna.domain.models import ExecutionState
 
 class HexannaRuntime:
-    def __init__(self, llm_gateway: ILLMGateway, tools: List[BaseTool]):
+    def __init__(
+        self,
+        llm_gateway: ILLMGateway,
+        tools: List[BaseTool],
+        history_repo: Optional[IChatHistoryRepository] = None
+    ):
         self.llm_gateway = llm_gateway
         self.dispatcher = ToolDispatcher(tools)
+        self.history_repo = history_repo
 
-    def run(self, objective: str, max_iterations: int = 10) -> ExecutionState:
+    def run(
+        self,
+        objective: str,
+        max_iterations: int = 10,
+        session_id: Optional[str] = None
+    ) -> ExecutionState:
+        sid = session_id or f"hexanna-{int(time.time())}"
         state = ExecutionState(
-            task_id=f"hexanna-{int(time.time())}",
+            task_id=sid,
             objective=objective,
             max_iterations=max_iterations
         )
+
+        if self.history_repo:
+            self.history_repo.create_session(session_id=sid, title=objective[:60])
+            self.history_repo.add_message(session_id=sid, role="user", content=objective)
 
         messages = [
             {"role": "system", "content": MetadataContextBuilder.build_system_prompt()},
@@ -49,6 +66,12 @@ class HexannaRuntime:
                     for tc in tool_calls
                 ]
             messages.append(assistant_msg)
+            if self.history_repo:
+                self.history_repo.add_message(
+                    session_id=sid,
+                    role="assistant",
+                    content=content
+                )
 
             if not tool_calls:
                 state.completed = True
@@ -65,6 +88,16 @@ class HexannaRuntime:
 
                 tool_msg = MetadataContextBuilder.format_tool_response(call_id, fn_name, exec_result)
                 messages.append(tool_msg)
+                if self.history_repo:
+                    self.history_repo.add_message(
+                        session_id=sid,
+                        role="tool",
+                        content=json.dumps(exec_result),
+                        tool_call_id=call_id,
+                        tool_name=fn_name,
+                        tool_arguments=args,
+                        tool_result=exec_result
+                    )
                 state.history.append({
                     "iteration": state.iteration,
                     "tool": fn_name,

@@ -5,6 +5,8 @@ from hexanna.domain.models import (
     DatasetMetadata,
     ToolExecutionResult,
     ExecutionState,
+    ChatMessage,
+    ChatSession,
 )
 from hexanna.domain.exceptions import (
     HexannaDomainException,
@@ -18,6 +20,8 @@ __all__ = [
     "DatasetMetadata",
     "ToolExecutionResult",
     "ExecutionState",
+    "ChatMessage",
+    "ChatSession",
     "HexannaDomainException",
     "OOMRiskExceededException",
     "SandboxedToolViolation",

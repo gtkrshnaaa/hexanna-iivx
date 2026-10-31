@@ -9,6 +9,8 @@ from hexanna.tools.profile_sketcher import ProfileSketcherTool
 from hexanna.harness.runtime import HexannaRuntime
 from hexanna.tui.repl import HexannaREPL
 
+from hexanna.adapters.storage.sqlite_history import SQLiteChatHistory
+
 def main():
     parser = argparse.ArgumentParser(
         prog="hexanna",
@@ -20,6 +22,14 @@ def main():
     repl_parser = subparsers.add_parser("repl", help="Launch interactive TUI REPL session")
     repl_parser.add_argument("--model", type=str, default="llama-3.3-70b-versatile", help="Model name")
     repl_parser.add_argument("--max-memory", type=str, default="2GB", help="DuckDB memory ceiling")
+
+    # Command: history
+    hist_parser = subparsers.add_parser("history", help="List recent commands from SQLite history")
+    hist_parser.add_argument("--limit", type=int, default=20, help="Number of records to show")
+
+    # Command: sessions
+    sess_parser = subparsers.add_parser("sessions", help="List saved chat sessions from SQLite history")
+    sess_parser.add_argument("--limit", type=int, default=20, help="Number of sessions to show")
 
     # Command: run
     run_parser = subparsers.add_parser("run", help="Execute an autonomous goal")
@@ -52,7 +62,30 @@ def main():
         repl.run()
         sys.exit(0)
 
-    if args.command == "inspect":
+    if args.command == "history":
+        db = SQLiteChatHistory()
+        records = db.list_commands(limit=args.limit)
+        print(json.dumps(records, indent=2))
+        db.close()
+        sys.exit(0)
+
+    elif args.command == "sessions":
+        db = SQLiteChatHistory()
+        sessions = [
+            {
+                "session_id": s.session_id,
+                "title": s.title,
+                "messages": s.message_count,
+                "created_at": s.created_at,
+                "updated_at": s.updated_at
+            }
+            for s in db.list_sessions(limit=args.limit)
+        ]
+        print(json.dumps(sessions, indent=2))
+        db.close()
+        sys.exit(0)
+
+    elif args.command == "inspect":
         engine = DuckDBAdapter()
         tool = SchemaInspectorTool(engine)
         res = tool.execute(file_path=args.file_path)

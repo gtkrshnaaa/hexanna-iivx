@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import glob
 import readline
 from typing import Optional, List, Dict, Any
@@ -13,6 +14,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from hexanna.adapters.engine.duckdb_adapter import DuckDBAdapter
 from hexanna.adapters.llm.openai_client import OpenAIGateway
+from hexanna.adapters.storage.sqlite_history import SQLiteChatHistory
 from hexanna.adapters.telemetry.psutil_tracker import PsutilTracker
 from hexanna.tools.schema_inspector import SchemaInspectorTool
 from hexanna.tools.out_of_core_sql import OutOfCoreSQLTool
@@ -31,6 +33,10 @@ class HexannaCompleter:
         "/profile",
         "/sql",
         "/run",
+        "/sessions",
+        "/history",
+        "/history-chat",
+        "/clear-history",
         "/memory",
         "/stats",
         "/config",
@@ -72,7 +78,8 @@ class HexannaREPL:
         memory_limit: str = "2GB",
         model_name: str = "llama-3.3-70b-versatile",
         base_url: Optional[str] = None,
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        db_path: Optional[str] = None
     ):
         self.console = Console()
         self.memory_limit = memory_limit
@@ -81,6 +88,11 @@ class HexannaREPL:
         self.api_key = api_key or os.getenv("LLM_API_KEY", "")
         self.engine = DuckDBAdapter(memory_limit=self.memory_limit)
         self.telemetry = PsutilTracker()
+
+        # Storage
+        self.history_db = SQLiteChatHistory(db_path=db_path) if db_path else SQLiteChatHistory()
+        self.session_id = f"session_{int(time.time())}"
+        self.history_db.create_session(self.session_id, f"Interactive Session {self.session_id}")
 
         # Tools
         self.tool_inspector = SchemaInspectorTool(self.engine)
@@ -141,6 +153,10 @@ class HexannaREPL:
         table.add_row("/profile", "<file_path> <column>", "Compute statistical sketches (nulls, quantiles, distincts)")
         table.add_row("/sql", "<query> [out.parquet]", "Execute out-of-core SQL (previews table or streams to disk)")
         table.add_row("/run", "<objective>", "Launch autonomous ReAct agent loop for a goal")
+        table.add_row("/sessions", "[limit]", "List historical chat sessions stored in SQLite")
+        table.add_row("/history", "[limit]", "Display recent command history from SQLite database")
+        table.add_row("/history-chat", "[session_id]", "Display message turns for a chat session from SQLite")
+        table.add_row("/clear-history", "", "Purge all historical chat sessions and commands in SQLite")
         table.add_row("/memory", "", "Display process memory metrics and DuckDB disk spill stats")
         table.add_row("/config", "[key] [value]", "View or update model, memory limit, or base URL")
         table.add_row("/clear", "", "Clear terminal screen and reprint banner")
@@ -283,13 +299,17 @@ class HexannaREPL:
             self.console.print("[yellow][WARN][/yellow] LLM_API_KEY is not set. Execution may fail if remote API requires authentication.")
 
         gateway = OpenAIGateway(model_name=self.model_name, base_url=self.base_url, api_key=api_key)
-        runtime = HexannaRuntime(llm_gateway=gateway, tools=self.tools)
+        runtime = HexannaRuntime(
+            llm_gateway=gateway,
+            tools=self.tools,
+            history_repo=self.history_db
+        )
 
         self.console.print(Rule(f"Autonomous Goal: {goal}", style="cyan"))
 
         with self.console.status("[cyan]Hexanna IIVX Agent is reasoning and executing...[/cyan]"):
             try:
-                state = runtime.run(goal)
+                state = runtime.run(goal, session_id=self.session_id)
             except Exception as err:
                 err_msg = self._sanitize_message(str(err))
                 self.console.print(f"[red][ERROR][/red] Execution halted: {err_msg}")
@@ -314,6 +334,69 @@ class HexannaREPL:
         if state.artifacts_created:
             self.console.print(f"[*] Generated artifacts: [cyan]{', '.join(state.artifacts_created)}[/cyan]")
         self.console.print(Rule(style="bright_black"))
+
+    def cmd_sessions(self, args: str):
+        limit = int(args.strip()) if args.strip().isdigit() else 20
+        sessions = self.history_db.list_sessions(limit=limit)
+        if not sessions:
+            self.console.print("[bright_black]No saved sessions in SQLite history.[/bright_black]")
+            return
+
+        table = Table(title="SQLite Chat Sessions", border_style="bright_black", show_lines=True)
+        table.add_column("Session ID", style="bold cyan")
+        table.add_column("Title", style="white")
+        table.add_column("Messages", style="cyan", justify="right")
+        table.add_column("Updated", style="bright_black")
+
+        for s in sessions:
+            date_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s.updated_at))
+            active_marker = " [bold green](active)[/bold green]" if s.session_id == self.session_id else ""
+            table.add_row(f"{s.session_id}{active_marker}", s.title, str(s.message_count), date_str)
+        self.console.print(table)
+
+    def cmd_history(self, args: str):
+        limit = int(args.strip()) if args.strip().isdigit() else 20
+        commands = self.history_db.list_commands(limit=limit)
+        if not commands:
+            self.console.print("[bright_black]No recorded commands in SQLite history.[/bright_black]")
+            return
+
+        table = Table(title=f"SQLite Command History (Last {len(commands)})", border_style="bright_black")
+        table.add_column("#", style="bright_black", width=4)
+        table.add_column("Time", style="bright_black", width=19)
+        table.add_column("Command", style="bold white")
+        table.add_column("Status", style="cyan", width=10)
+
+        for cmd in reversed(commands):
+            time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(cmd["created_at"]))
+            status_style = "green" if cmd["status"] == "success" else "red"
+            table.add_row(str(cmd["id"]), time_str, cmd["command_text"], f"[{status_style}]{cmd['status']}[/{status_style}]")
+        self.console.print(table)
+
+    def cmd_history_chat(self, args: str):
+        target_sid = args.strip() or self.session_id
+        messages = self.history_db.get_messages(target_sid)
+        if not messages:
+            self.console.print(f"[bright_black]No chat messages found for session: {target_sid}[/bright_black]")
+            return
+
+        table = Table(title=f"SQLite Chat Turns :: {target_sid}", border_style="bright_black", show_lines=True)
+        table.add_column("Role", style="bold cyan", width=12)
+        table.add_column("Content / Tool Trace", style="white")
+
+        for m in messages:
+            if m.role == "tool":
+                detail = f"[cyan]Tool: {m.tool_name}[/cyan]\nOutput: {m.content}"
+            elif m.role == "assistant" and not m.content and m.tool_name:
+                detail = f"[cyan]Invoked: {m.tool_name}[/cyan]\nArguments: {m.tool_arguments}"
+            else:
+                detail = m.content or ""
+            table.add_row(m.role.upper(), detail)
+        self.console.print(table)
+
+    def cmd_clear_history(self):
+        self.history_db.clear_history()
+        self.console.print("[green][OK][/green] SQLite chat history and commands database purged.")
 
     def cmd_memory(self):
         stats = self.telemetry.sample()
@@ -421,6 +504,9 @@ class HexannaREPL:
             if any(k in user_input.lower() for k in ("base_url", "api_key", "llm_api_key")):
                 self._scrub_sensitive_history()
 
+            # Record in SQLite history database (sanitized)
+            self.history_db.add_command(self._sanitize_message(user_input), session_id=self.session_id)
+
             # Command routing
             lower = user_input.lower()
             if lower in ("/exit", "/quit", "exit", "quit"):
@@ -433,6 +519,14 @@ class HexannaREPL:
                 self.print_banner()
             elif lower in ("/memory", "/stats"):
                 self.cmd_memory()
+            elif lower.startswith("/sessions"):
+                self.cmd_sessions(user_input[len("/sessions"):])
+            elif lower.startswith("/history-chat"):
+                self.cmd_history_chat(user_input[len("/history-chat"):])
+            elif lower.startswith("/history"):
+                self.cmd_history(user_input[len("/history"):])
+            elif lower == "/clear-history":
+                self.cmd_clear_history()
             elif lower.startswith("/inspect"):
                 self.cmd_inspect(user_input[len("/inspect"):])
             elif lower.startswith("/profile"):
@@ -451,4 +545,5 @@ class HexannaREPL:
                 self.cmd_run(user_input)
 
         self.engine.close()
+        self.history_db.close()
         self._save_history()

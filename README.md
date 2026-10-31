@@ -61,11 +61,27 @@ Available REPL commands:
 - `/profile <path> <column>`: Compute statistical sketches and null distributions.
 - `/sql <query> [-> out.parquet]`: Preview analytical SQL in terminal or stream out-of-core to disk.
 - `/run <objective>`: Launch the autonomous ReAct agent loop for a goal.
+- `/sessions`: List historical chat sessions stored in the SQLite database.
+- `/history [limit]`: Display recent interactive command history from SQLite.
+- `/history-chat [session_id]`: Display message turns for a chat session from SQLite.
+- `/clear-history`: Purge all historical chat sessions and commands in SQLite.
 - `/memory`: Inspect process RSS, VMS, CPU, and DuckDB disk spill metrics.
 - `/config`: Inspect or update model, base URL, and memory ceilings.
 - `/help`: Display the commands reference table.
 
 ### CLI Commands
+
+Inspect recent interactive command history from SQLite:
+
+```bash
+python3 -m hexanna history --limit 20
+```
+
+List historical sessions from SQLite:
+
+```bash
+python3 -m hexanna sessions --limit 20
+```
 
 Inspect a dataset schema without loading records into memory:
 
