@@ -17,3 +17,7 @@ class IDataEngine(ABC):
     def compute_summary_sketches(self, file_path: str, column_name: str) -> Dict[str, Any]:
         """Calculates statistical sketches (nulls, quantiles, distincts) efficiently."""
         pass
+
+    def execute_preview(self, query: str, limit: int = 50) -> Dict[str, Any]:
+        """Executes analytical query with safe bounded row fetching for terminal preview."""
+        raise NotImplementedError

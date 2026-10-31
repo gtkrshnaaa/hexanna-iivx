@@ -76,6 +76,20 @@ class DuckDBAdapter(IDataEngine):
         col_names = [desc[0] for desc in cursor.description]
         return dict(zip(col_names, row))
 
+    def execute_preview(self, query: str, limit: int = 50) -> Dict[str, Any]:
+        """Executes analytical query with safe bounded row fetching for terminal preview."""
+        clean_query = query.strip().rstrip(";")
+        preview_sql = f"SELECT * FROM ({clean_query}) LIMIT {limit}"
+        cursor = self._conn.execute(preview_sql)
+        headers = [desc[0] for desc in cursor.description]
+        rows = cursor.fetchall()
+        return {
+            "columns": headers,
+            "rows": rows,
+            "row_count": len(rows),
+            "is_truncated": len(rows) == limit
+        }
+
     def close(self):
         if self._conn:
             self._conn.close()

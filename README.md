@@ -46,6 +46,25 @@ source .venv/bin/activate
 pip install -e ".[all]"
 ```
 
+### Interactive TUI REPL
+
+Launch the interactive REPL with real-time memory metrics, tab auto-completion, and out-of-core streaming:
+
+```bash
+python3 -m hexanna
+# or explicitly:
+python3 -m hexanna repl
+```
+
+Available REPL commands:
+- `/inspect <path>`: View structural metadata and relational schema tables.
+- `/profile <path> <column>`: Compute statistical sketches and null distributions.
+- `/sql <query> [-> out.parquet]`: Preview analytical SQL in terminal or stream out-of-core to disk.
+- `/run <objective>`: Launch the autonomous ReAct agent loop for a goal.
+- `/memory`: Inspect process RSS, VMS, CPU, and DuckDB disk spill metrics.
+- `/config`: Inspect or update model, base URL, and memory ceilings.
+- `/help`: Display the commands reference table.
+
 ### CLI Commands
 
 Inspect a dataset schema without loading records into memory:

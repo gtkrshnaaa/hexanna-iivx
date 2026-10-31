@@ -12,6 +12,7 @@ elif command -v docker >/dev/null 2>&1; then
     docker run --rm \
         --memory="2g" \
         --cpus="2" \
+        -e PYTHONDONTWRITEBYTECODE=1 \
         -v "$PWD":/app \
         -w /app \
         python:3.11-slim \

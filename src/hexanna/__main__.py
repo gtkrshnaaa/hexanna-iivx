@@ -7,6 +7,7 @@ from hexanna.tools.schema_inspector import SchemaInspectorTool
 from hexanna.tools.out_of_core_sql import OutOfCoreSQLTool
 from hexanna.tools.profile_sketcher import ProfileSketcherTool
 from hexanna.harness.runtime import HexannaRuntime
+from hexanna.tui.repl import HexannaREPL
 
 def main():
     parser = argparse.ArgumentParser(
@@ -14,6 +15,11 @@ def main():
         description="Hexanna IIVX: Deterministic Out-of-Core Data Engineering Agent Harness"
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Command: repl
+    repl_parser = subparsers.add_parser("repl", help="Launch interactive TUI REPL session")
+    repl_parser.add_argument("--model", type=str, default="llama-3.3-70b-versatile", help="Model name")
+    repl_parser.add_argument("--max-memory", type=str, default="2GB", help="DuckDB memory ceiling")
 
     # Command: run
     run_parser = subparsers.add_parser("run", help="Execute an autonomous goal")
@@ -39,8 +45,11 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.command:
-        parser.print_help()
+    if not args.command or args.command == "repl":
+        model = getattr(args, "model", "llama-3.3-70b-versatile")
+        max_mem = getattr(args, "max_memory", "2GB")
+        repl = HexannaREPL(memory_limit=max_mem, model_name=model)
+        repl.run()
         sys.exit(0)
 
     if args.command == "inspect":
