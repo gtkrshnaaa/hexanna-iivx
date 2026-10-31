@@ -153,7 +153,7 @@ If you use Hexanna IIVX or its benchmark harnesses in your scientific work, plea
 ```bibtex
 @article{krishna2026hexanna,
   title={Hexanna IIVX: A Deterministic, Metadata-Driven Agent Harness for Out-of-Core Local Data Engineering},
-  author={I Putu Gede Gilang Teja Krishna},
+  author={Krishna, I Putu Gede Gilang Teja and Redjeki, Sri},
   journal={Journal of Systems and Software},
   publisher={Elsevier},
   year={2026},
