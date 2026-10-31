@@ -98,3 +98,14 @@ Formally, let $q_k$ be the candidate query synthesized at iteration $k \le k_{\m
     \end{cases}
 \end{equation}
 The augmented reasoning context for iteration $k+1$ is assembled via surgical delta concatenation $\mathcal{P}_{k+1} = \mathcal{P}_k \oplus \Delta_k$, guaranteeing that the metadata invariant is strictly preserved while eliminating unconstrained conversation drift. The loop terminates upon success or when reaching $k_{\max} = 3$ iterations.
+
+\subsection{Multi-Tiered Circuit Breakers and Bounded Execution Guardrails}
+Autonomous agent harnesses operating over remote language models are inherently vulnerable to non-terminating cyclic reasoning loops, repetitive tool invocations, and runaway API token consumption. To guarantee termination and operational resilience, Hexanna IIVX integrates a parameterized operational policy $\mathcal{R} = \langle C_{\max}, L_{\max}, E_{\max}, k_{\text{abs}}, T_{\text{api}} \rangle$:
+
+\begin{enumerate}
+    \item \textbf{Global API Invocation Ceiling ($C_{\max} = 25$):} Clamps cumulative remote inference calls per task session. If total gateway requests reach $C_{\max}$, execution is halted immediately via an \texttt{InfiniteLoopDetectedException}, preventing budget exhaustion.
+    \item \textbf{Cyclic Identical Tool-Call Tripwire ($L_{\max} = 3$):} Computes a deterministic canonical call signature $\Psi_k = \langle \text{fn}, \text{hash}(\text{args}) \rangle$ for each dispatched tool turn. If the model emits identical function calls and arguments across $L_{\max}$ consecutive turns without advancing analytical state, the circuit breaker triggers and terminates execution.
+    \item \textbf{Consecutive Tool Error Ceiling ($E_{\max} = 3$):} If physical query execution yields an error response for $E_{\max}$ consecutive iterations without self-healing convergence, the harness breaks the execution loop rather than continuing unpromising retries.
+    \item \textbf{Absolute Iteration Clamp ($k_{\text{abs}} = 10$):} Enforces a strict upper bound on reasoning turns, clamping any requested iteration count to $k \le \min(k_{\text{req}}, k_{\text{abs}})$.
+    \item \textbf{Remote Gateway Timeout ($T_{\text{api}} = 60$~s):} Enforces strict socket timeout bounds on remote inference calls, preventing thread deadlocks during transient gateway outages.
+\end{enumerate}

@@ -32,3 +32,10 @@ def test_compute_summary_sketches(sample_parquet, duckdb_engine):
     assert sketch["null_count"] == 200
     assert sketch["non_null_count"] == 800
     assert sketch["approx_distinct"] == 1
+
+def test_duckdb_threads_configuration():
+    adapter = DuckDBAdapter(memory_limit="1GB", threads=2)
+    assert adapter.threads == 2
+    res = adapter._conn.execute("SELECT current_setting('threads')").fetchone()[0]
+    assert int(res) == 2
+    adapter.close()

@@ -4,7 +4,7 @@
 To empirically validate Hexanna IIVX and address Research Questions RQ1 through RQ4, we establish a rigorous experimental benchmark replicating real-world edge data engineering workloads on commodity hardware.
 
 \subsection{Workstation Hardware and Inference Gateway Configuration}
-All benchmark experiments were conducted on a dedicated commodity developer workstation: an Intel Core Ultra 5 (14 physical cores, 18 threads, up to 4.5~GHz boost clock), 16~GB DDR5 5600~MHz RAM, and a 256~GB PCIe 4.0 NVMe SSD (sequential read/write up to 5,000~MB/s) running Ubuntu Linux 24.04 LTS (x86\_64, Linux Kernel 6.8.0). To guarantee isolated telemetry and eliminate background interference, all pipelines were executed inside unprivileged Docker containers (Python 3.11-slim) subject to strict cgroup constraints (50\% CPU allocation, bounded thread contention).
+All benchmark experiments were conducted on a dedicated commodity developer laptop: an 11th Gen Intel Core i5-1135G7 processor (4 physical cores, 8 threads, up to 4.2~GHz boost clock), 8~GB DDR4 RAM (7.0~GiB addressable), and a 256~GB PCIe 4.0 NVMe SSD (sequential read/write up to 5,000~MB/s) running Ubuntu Linux (x86\_64). To guarantee isolated telemetry, protect host system responsiveness, and eliminate background interference, all pipelines were executed inside unprivileged Docker containers (Python 3.11-slim) subject to strict cgroup constraints (50\% CPU allocation, bounded thread contention).
 
 To rigorously evaluate the model-agnostic characteristics and cross-architecture generalizability of Hexanna IIVX, we evaluated two distinct, high-throughput, cost-effective inference engines via OpenAI-compatible REST gateways:
 \begin{enumerate}
@@ -50,7 +50,7 @@ To properly isolate the computational and architectural characteristics of Hexan
     \item \textbf{Theoretical Performance Ceiling (Raw DuckDB)}: Native DuckDB execution with identical 2~GB memory constraints and NVMe disk spilling, executed via hand-crafted, optimal SQL without any LLM orchestration. This baseline directly measures the marginal cognitive overhead (planning, serialization, tool invocation) introduced by our autonomous harness.
 \end{itemize}
 
-\subsection{Evaluation Metrics and Instrumentation}
+\subsection{Evaluation Metrics and Automated Verification Suite}
 All experiments are recorded using high-precision non-invasive telemetry:
 \begin{itemize}
     \item \textbf{Peak Resident Set Size (Peak RSS):} Tracked at 50~ms intervals using an asynchronous \texttt{psutil} daemon, capturing peak physical RAM allocated by the process and all child threads.
@@ -59,3 +59,5 @@ All experiments are recorded using high-precision non-invasive telemetry:
     \item \textbf{Wire Token Consumption:} Cumulative prompt and completion tokens transmitted across the remote model inference gateway.
     \item \textbf{Task Validity and Convergence:} Binary success rate and mean retry iterations required to achieve verified analytical completion.
 \end{itemize}
+
+To guarantee code correctness and eliminate mock theater, all architectural modules are continuously tested through an automated regression suite of 41 discrete tests. This includes unit validations of tool schema bindings, DuckDB buffer allocation and thread limits, SQLite WAL history persistence, and multi-tiered circuit breaker trip conditions, as well as live end-to-end integration tests confirming real wire completions and tool-call schema dispatches against active DeepSeek Flash and Gemini 3.8 Flash endpoints.

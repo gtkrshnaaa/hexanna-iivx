@@ -6,8 +6,9 @@ from hexanna.domain.models import DatasetMetadata, ColumnSchema
 from hexanna.domain.exceptions import HexannaDomainException
 
 class DuckDBAdapter(IDataEngine):
-    def __init__(self, memory_limit: str = "2GB", temp_directory: Optional[str] = None):
+    def __init__(self, memory_limit: str = "2GB", temp_directory: Optional[str] = None, threads: int = 4):
         self.memory_limit = memory_limit
+        self.threads = threads
         if temp_directory:
             self.temp_directory = temp_directory
         else:
@@ -24,6 +25,7 @@ class DuckDBAdapter(IDataEngine):
         self._conn.execute(f"SET max_memory = '{self.memory_limit}';")
         self._conn.execute(f"SET temp_directory = '{self.temp_directory}';")
         self._conn.execute("SET preserve_insertion_order = false;")
+        self._conn.execute(f"SET threads = {self.threads};")
 
     def inspect_metadata(self, file_path: str) -> DatasetMetadata:
         if not os.path.exists(file_path):
