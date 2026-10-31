@@ -146,7 +146,7 @@ bash benchmarks/run_benchmarks.sh
 
 ## Research Publication and Citation
 
-This research is accepted for publication in the **Journal of Systems and Software** (Elsevier, Manuscript ID: JSS-2026-8841). The camera-ready archival manuscript is available at [paper/main.pdf](paper/main.pdf).
+This research manuscript is submitted to the **Journal of Systems and Software** (Elsevier). The preprint manuscript is available at [paper/main.pdf](paper/main.pdf).
 
 If you use Hexanna IIVX or its benchmark harnesses in your scientific work, please cite:
 
@@ -157,7 +157,7 @@ If you use Hexanna IIVX or its benchmark harnesses in your scientific work, plea
   journal={Journal of Systems and Software},
   publisher={Elsevier},
   year={2026},
-  note={Accepted for publication}
+  note={Under review}
 }
 ```
 
