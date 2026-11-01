@@ -44,6 +44,17 @@
 \titleformat{\subsubsection}{\small\bfseries}{\thesubsubsection}{0.8em}{}
 \titlespacing*{\subsubsection}{0pt}{6pt plus 2pt minus 1pt}{3pt plus 1pt minus 1pt}
 
+% Abstract formatting: full width aligned with section margins
+\renewenvironment{abstract}{%
+    \small
+    \begin{center}%
+        {\bfseries\abstractname\vspace{-0.5em}\vspace{0pt}}%
+    \end{center}%
+    \par\noindent\ignorespaces
+}{%
+    \par\vspace{1.2em}
+}
+
 % Float placement controls
 \renewcommand{\topfraction}{0.85}
 \renewcommand{\bottomfraction}{0.80}
