@@ -2,7 +2,7 @@
 id: "002"
 title: "JSS Camera-Ready Polish"
 type: "fix"
-status: "in-progress"
+status: "done"
 created_at: "2026-10-31"
 updated_at: "2026-11-02"
 ---
