@@ -2,9 +2,9 @@
 id: "004"
 title: "PDF Margin and Layout Typography Polish"
 type: "style"
-status: "done"
+status: "in-progress"
 created_at: "2026-10-31"
-updated_at: "2026-10-31"
+updated_at: "2026-11-02"
 ---
 
 # [Style] PDF Margin and Layout Typography Polish
