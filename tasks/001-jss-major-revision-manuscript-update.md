@@ -2,9 +2,9 @@
 id: "001"
 title: "JSS Major Revision Manuscript Update"
 type: "feature"
-status: "done"
+status: "in-progress"
 created_at: "2026-10-31"
-updated_at: "2026-10-31"
+updated_at: "2026-11-02"
 ---
 
 # [Feature] JSS Major Revision Manuscript Update
