@@ -2,9 +2,9 @@
 id: "003"
 title: "JSS Publication Acceptance Metadata and Citation"
 type: "docs"
-status: "done"
+status: "in-progress"
 created_at: "2026-10-31"
-updated_at: "2026-10-31"
+updated_at: "2026-11-02"
 ---
 
 # [Docs] JSS Publication Acceptance Metadata and Citation
